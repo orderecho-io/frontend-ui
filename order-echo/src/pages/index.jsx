@@ -1,6 +1,11 @@
 import Layout from "./Layout.jsx";
-
 import Home from "./Home";
+import Login from "./Login";
+import Signup from "./Signup";
+import ForgotPassword from "./ForgotPassword";
+import ResetPassword from "./ResetPassword";
+import Dashboard from "./Dashboard";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
@@ -31,12 +36,52 @@ function PagesContent() {
     return (
         <Layout currentPageName={currentPage}>
             <Routes>            
-                
-                    <Route path="/" element={<Home />} />
-                
-                
+                <Route path="/" element={<Home />} />
                 <Route path="/Home" element={<Home />} />
                 
+                {/* Authentication Routes */}
+                <Route 
+                    path="/login" 
+                    element={
+                        <ProtectedRoute requireAuth={false}>
+                            <Login />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/signup" 
+                    element={
+                        <ProtectedRoute requireAuth={false}>
+                            <Signup />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/forgot-password" 
+                    element={
+                        <ProtectedRoute requireAuth={false}>
+                            <ForgotPassword />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/reset-password" 
+                    element={
+                        <ProtectedRoute requireAuth={false}>
+                            <ResetPassword />
+                        </ProtectedRoute>
+                    } 
+                />
+                
+                {/* Protected Routes */}
+                <Route 
+                    path="/dashboard" 
+                    element={
+                        <ProtectedRoute requireAuth={true}>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    } 
+                />
             </Routes>
         </Layout>
     );

@@ -24,12 +24,12 @@ const steps = [
   {
     icon: Tablet,
     title: "Order Sent for Prep",
-    description: "The confirmed order is sent to your kitchen via a dedicated tablet app or printer.",
+    description: "The confirmed order is sent to your kitchen via a printer.",
     color: "bg-orange-500"
   }
 ];
 
-export default function HowItWorks() {
+export default function HowItWorks({ onGetStarted }) {
   return (
     <section className="py-20 bg-gradient-to-b from-white to-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -117,10 +117,12 @@ export default function HowItWorks() {
               Join hundreds of restaurants already using OrderEcho to increase revenue and never miss a call again.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-white text-orange-600 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors shadow-md hover:shadow-lg">
+             {/* <button className="bg-white text-orange-600 px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors shadow-md hover:shadow-lg">
                 Start Free Trial
-              </button>
-              <button className="border-2 border-white/50 text-white px-8 py-3 rounded-xl font-semibold hover:bg-white hover:text-orange-600 transition-colors">
+              </button> */}
+              <button className="border-2 border-white/50 text-white px-8 py-3 rounded-xl font-semibold hover:bg-white hover:text-orange-600 transition-colors"
+                onClick={onGetStarted}
+              >
                 Schedule Demo
               </button>
             </div>

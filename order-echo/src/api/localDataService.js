@@ -34,9 +34,33 @@ export class LocalDataService {
   }
 }
 
+// Attempt remote submit first, then fallback to local storage
+async function createLeadRemote(data) {
+  const baseUrl = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:8001/api";
+  const url = `${baseUrl.replace(/\/$/, "")}/leads`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Remote submit failed: ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
 // Export for backward compatibility
 export const Lead = {
-  create: LocalDataService.createLead
+  create: async (data) => {
+    try {
+      // Prefer secure backend API if available
+      return await createLeadRemote(data);
+    } catch (err) {
+      console.warn("Falling back to local lead storage:", err?.message || err);
+      return await LocalDataService.createLead(data);
+    }
+  },
 };
 
 export const User = {

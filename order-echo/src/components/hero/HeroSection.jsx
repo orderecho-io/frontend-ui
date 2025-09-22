@@ -47,13 +47,13 @@ export default function HeroSection({ onGetStarted }) {
               >
                 Get Started Free
               </Button>
-              <Button 
+              {/*<Button 
                 size="lg" 
                 variant="outline" 
                 className="border-2 border-orange-500 text-orange-600 hover:bg-orange-50 px-8 py-4 text-lg"
               >
                 Watch Demo
-              </Button>
+              </Button>*/}
             </div>
 
             {/* Stats */}

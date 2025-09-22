@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lead } from "@/api/entities";
 import { CheckCircle, Phone, Mail, Building } from "lucide-react";
 import { motion } from "framer-motion";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function LeadCaptureForm() {
   const [formData, setFormData] = useState({
@@ -15,12 +16,12 @@ export default function LeadCaptureForm() {
     contact_name: '',
     email: '',
     phone: '',
-    current_call_volume: '',
+    monthly_order_volume: '',
     biggest_challenge: '',
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -35,13 +36,13 @@ export default function LeadCaptureForm() {
     
     try {
       await Lead.create(formData);
-      setIsSuccess(true);
+      setShowConfirm(true);
       setFormData({
         restaurant_name: '',
         contact_name: '',
         email: '',
         phone: '',
-        current_call_volume: '',
+        monthly_order_volume: '',
         biggest_challenge: '',
         message: ''
       });
@@ -52,35 +53,31 @@ export default function LeadCaptureForm() {
     setIsSubmitting(false);
   };
 
-  if (isSuccess) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center py-12"
-      >
-        <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckCircle className="w-10 h-10 text-white" />
-        </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-4">
-          Thank You! We'll Be In Touch Soon
-        </h3>
-        <p className="text-gray-600 mb-6 max-w-md mx-auto">
-          Our team will contact you within 24 hours to schedule a personalized demo and discuss how OrderEcho can transform your restaurant.
-        </p>
-        <Button 
-          onClick={() => setIsSuccess(false)}
-          className="bg-orange-500 hover:bg-orange-600"
-        >
-          Submit Another Inquiry
-        </Button>
-      </motion.div>
-    );
-  }
-
   return (
     <section id="get-started" className="py-20 bg-gradient-to-b from-gray-50 to-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Success Modal */}
+        <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                </span>
+                Submitted Successfully
+              </DialogTitle>
+              <DialogDescription>
+                Thank you! We'll be in touch soon to schedule your personalized demo.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button onClick={() => setShowConfirm(false)} className="bg-orange-500 hover:bg-orange-600">
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -166,16 +163,16 @@ export default function LeadCaptureForm() {
 
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="call_volume">Daily Call Volume</Label>
-                  <Select value={formData.current_call_volume} onValueChange={(value) => handleInputChange('current_call_volume', value)}>
+                  <Label htmlFor="call_volume">Monthly Order Volume</Label>
+                  <Select value={formData.monthly_order_volume} onValueChange={(value) => handleInputChange('monthly_order_volume', value)}>
                     <SelectTrigger className="h-12">
-                      <SelectValue placeholder="Select call volume" />
+                      <SelectValue placeholder="Select order volume" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="under_50">Under 50 calls</SelectItem>
-                      <SelectItem value="50_100">50-100 calls</SelectItem>
-                      <SelectItem value="100_200">100-200 calls</SelectItem>
-                      <SelectItem value="over_200">Over 200 calls</SelectItem>
+                      <SelectItem value="under_1000">Under $1,000</SelectItem>
+                      <SelectItem value="1000_5000">$1,000 - $5,000</SelectItem>
+                      <SelectItem value="5000_10000">$5,000 - $10,000</SelectItem>
+                      <SelectItem value="over_10000">Over $10,000</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

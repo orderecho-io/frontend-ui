@@ -22,7 +22,7 @@ export default function Home() {
         <HeroSection onGetStarted={scrollToGetStarted} />
         
         <div id="how-it-works">
-          <HowItWorks />
+          <HowItWorks onGetStarted={scrollToGetStarted} />
         </div>
         
         <div id="benefits">

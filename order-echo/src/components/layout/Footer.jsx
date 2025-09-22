@@ -23,6 +23,7 @@ export default function Footer() {
             <p className="text-gray-400 leading-relaxed mb-6 max-w-md">
               The AI voice agent that transforms restaurant phone ordering. Never miss a call, never lose an order.
             </p>
+            {/*
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex items-center gap-2 text-gray-400">
                 <Mail className="w-4 h-4" />
@@ -32,7 +33,7 @@ export default function Footer() {
                 <Phone className="w-4 h-4" />
                 <span>1-800-ORDER-AI</span>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Quick Links */}
