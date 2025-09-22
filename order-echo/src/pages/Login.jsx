@@ -35,11 +35,8 @@ export default function Login() {
   const onSubmit = async (data) => {
     setIsLoading(true);
     try {
-      console.log('Login form submitted with:', data);
       const result = await login(data.email, data.password);
-      console.log('Login result:', result);
       if (result.success) {
-        console.log('Navigating to:', from);
         navigate(from, { replace: true });
       }
     } catch (error) {

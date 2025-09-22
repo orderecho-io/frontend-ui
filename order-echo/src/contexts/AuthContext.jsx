@@ -58,7 +58,6 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setLoading(true);
-      console.log('Attempting login for:', email);
       const response = await fetch('http://localhost:8001/api/auth/login', {
         method: 'POST',
         headers: {
@@ -68,13 +67,11 @@ export const AuthProvider = ({ children }) => {
       });
 
       const data = await response.json();
-      console.log('Login response:', data);
 
       if (response.ok) {
         localStorage.setItem('token', data.access_token);
         setUser(data.user);
         setIsAuthenticated(true);
-        console.log('Login successful, user set:', data.user);
         toast.success('Login successful!');
         return { success: true };
       } else {
