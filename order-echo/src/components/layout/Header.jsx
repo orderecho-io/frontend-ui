@@ -16,7 +16,7 @@ import {
 export default function Header({ onGetStarted }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, loading } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
@@ -102,6 +102,10 @@ export default function Header({ onGetStarted }) {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+            ) : loading ? (
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-8 bg-gray-200 rounded animate-pulse"></div>
+              </div>
             ) : (
               <div className="flex items-center space-x-4">
                 <Link to="/login">
@@ -181,6 +185,8 @@ export default function Header({ onGetStarted }) {
                     Sign Out
                   </button>
                 </>
+              ) : loading ? (
+                <div className="w-16 h-8 bg-gray-200 rounded animate-pulse"></div>
               ) : (
                 <>
                   <Link 

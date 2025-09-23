@@ -5,6 +5,9 @@ import Signup from "./Signup";
 import ForgotPassword from "./ForgotPassword";
 import ResetPassword from "./ResetPassword";
 import Dashboard from "./Dashboard";
+import MenuFiles from "./MenuFiles";
+import Orders from "./Orders";
+import Profile from "./Profile";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
@@ -79,6 +82,30 @@ function PagesContent() {
                     element={
                         <ProtectedRoute requireAuth={true}>
                             <Dashboard />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/menufiles" 
+                    element={
+                        <ProtectedRoute requireAuth={true}>
+                            <MenuFiles />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/orders" 
+                    element={
+                        <ProtectedRoute requireAuth={true}>
+                            <Orders />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/profile" 
+                    element={
+                        <ProtectedRoute requireAuth={true}>
+                            <Profile />
                         </ProtectedRoute>
                     } 
                 />
