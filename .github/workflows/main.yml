@@ -19,6 +19,7 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
+        cache-dependency-path: package-lock.json
         
     - name: Install dependencies
       run: npm ci
@@ -32,7 +33,7 @@ jobs:
       run: npm run build
       
     - name: Deploy frontend to server
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') && github.event_name == 'push'
       env:
         SERVER_IP: ${{ secrets.SERVER_IP }}
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -51,7 +52,7 @@ jobs:
         ssh $SERVER_USER@$SERVER_IP "sudo systemctl reload nginx"
         
     - name: Verify frontend deployment
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') && github.event_name == 'push'
       env:
         SERVER_IP: ${{ secrets.SERVER_IP }}
       run: |
