@@ -35,19 +35,26 @@ export default function LeadCaptureForm() {
     setIsSubmitting(true);
     
     try {
-      await Lead.create(formData);
-      setShowConfirm(true);
-      setFormData({
-        restaurant_name: '',
-        contact_name: '',
-        email: '',
-        phone: '',
-        monthly_order_volume: '',
-        biggest_challenge: '',
-        message: ''
-      });
+      const result = await Lead.create(formData);
+      
+      if (result.success) {
+        setShowConfirm(true);
+        setFormData({
+          restaurant_name: '',
+          contact_name: '',
+          email: '',
+          phone: '',
+          monthly_order_volume: '',
+          biggest_challenge: '',
+          message: ''
+        });
+      } else {
+        console.error('Lead creation failed:', result.error);
+        alert('Sorry, there was an error submitting your information. Please try again.');
+      }
     } catch (error) {
       console.error('Error submitting lead:', error);
+      alert('Sorry, there was an error submitting your information. Please try again.');
     }
     
     setIsSubmitting(false);

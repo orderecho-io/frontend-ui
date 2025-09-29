@@ -29,23 +29,32 @@ export const AuthProvider = ({ children }) => {
         if (payload.exp && payload.exp > now) {
           // Token is not expired, set user from token payload
           setUser({
-            id: payload.userId,
+            user_id: payload.sub,
+            id: payload.sub,
             email: payload.email,
-            firstName: payload.firstName,
-            lastName: payload.lastName
+            firstName: payload.name ? payload.name.split(' ')[0] : '',
+            lastName: payload.name ? payload.name.split(' ')[1] : '',
+            role: payload.role || 'user'
           });
           setIsAuthenticated(true);
           setLoading(false);
           
-          // Verify token in background (non-blocking)
-          verifyToken(token);
-        } else {
-          // Token is expired, remove it
-          localStorage.removeItem('token');
-          setUser(null);
-          setIsAuthenticated(false);
-          setLoading(false);
-        }
+      // Verify token in background (non-blocking)
+      verifyToken(token);
+      
+      // Schedule token refresh check (every 30 minutes)
+      const refreshInterval = setInterval(() => {
+        refreshTokenIfNeeded();
+      }, 30 * 60 * 1000); // 30 minutes
+      
+      return () => clearInterval(refreshInterval);
+    } else {
+      // Token is expired, remove it
+      localStorage.removeItem('token');
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoading(false);
+    }
       } catch (error) {
         // Invalid token format, remove it
         localStorage.removeItem('token');
@@ -57,6 +66,36 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
+
+  const refreshTokenIfNeeded = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const now = Math.floor(Date.now() / 1000);
+      const timeLeft = payload.exp - now;
+      
+      // If token expires in less than 1 hour (3600 seconds), refresh it
+      if (timeLeft < 3600 && timeLeft > 0) {
+        const response = await fetch(API_ENDPOINTS.AUTH.VERIFY, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const userData = await response.json();
+          console.log('Token verified successfully - session remains active');
+        } else {
+          // Token is invalid, logout
+          logout();
+        }
+      }
+    } catch (error) {
+      console.error('Token refresh check failed:', error);
+    }
+  };
 
   const verifyToken = async (token) => {
     try {
@@ -98,7 +137,7 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (response.ok) {
-        localStorage.setItem('token', data.token);
+        localStorage.setItem('token', data.access_token || data.token);
         setUser(data.user);
         setIsAuthenticated(true);
         toast.success('Login successful!');

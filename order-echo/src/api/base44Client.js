@@ -1,7 +1,7 @@
 // Implementation to replace @base44/sdk
 // This provides the same interface with real backend API calls
 
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, API_BASE_URL } from '../config/api';
 
 // Mock client implementation
 const createMockClient = () => ({
@@ -76,8 +76,42 @@ const createMockClient = () => ({
   entities: {
     Lead: {
       async create(data) {
-        console.log('Mock Lead.create called:', data);
-        return { success: true, id: 'mock-lead-id' };
+        console.log('Lead.create called:', data);
+        try {
+          // Make real API call to backend
+          const response = await fetch(`${API_BASE_URL}/api/leads`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              restaurant_name: data.restaurant_name,
+              contact_name: data.contact_name,
+              email: data.email,
+              phone: data.phone,
+              monthly_order_volume: data.monthly_order_volume,
+              message: data.message,
+              lead_source: 'website'
+            })
+          });
+          
+          console.log('Lead creation response status:', response.status);
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Lead creation error:', errorText);
+            throw new Error(`Failed to create lead: ${response.status} ${errorText}`);
+          }
+          
+          const leadData = await response.json();
+          console.log('Lead created successfully:', leadData);
+          return { success: true, id: leadData.id };
+          
+        } catch (error) {
+          console.error('Error creating lead:', error);
+          // Fallback to mock behavior for UI feedback
+          return { success: false, error: error.message };
+        }
       },
       async get(id) {
         console.log('Mock Lead.get called:', id);
