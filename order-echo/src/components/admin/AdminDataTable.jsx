@@ -10,7 +10,8 @@ const AdminDataTable = ({
   paginated = true,
   pageSize = 10,
   onUpdate = null,
-  entityType = 'item'
+  entityType = 'item',
+  onRowClick = null
 }) => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [searchTerm, setSearchTerm] = useState('');
@@ -337,7 +338,16 @@ const AdminDataTable = ({
                           />
                         )
                       ) : (
-                        formatValue(row[column.key], column.type)
+                        column.type === 'link' && column.key === 'id' ? (
+                          <button
+                            onClick={() => onRowClick && onRowClick(row[column.key])}
+                            className="text-blue-600 hover:text-blue-800 underline font-medium"
+                          >
+                            {formatValue(row[column.key], column.type)}
+                          </button>
+                        ) : (
+                          formatValue(row[column.key], column.type)
+                        )
                       )}
                     </td>
                   ))}
