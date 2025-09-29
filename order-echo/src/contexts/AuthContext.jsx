@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { API_ENDPOINTS } from '../config/api';
 
 const AuthContext = createContext();
 
@@ -59,7 +60,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifyToken = async (token) => {
     try {
-      const response = await fetch('http://localhost:5174/api/auth/verify', {
+      const response = await fetch(API_ENDPOINTS.AUTH.VERIFY, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -86,7 +87,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5174/api/auth/login', {
+      const response = await fetch(API_ENDPOINTS.AUTH.LOGIN, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -118,7 +119,7 @@ export const AuthProvider = ({ children }) => {
   const signup = async (userData) => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5174/api/auth/signup', {
+      const response = await fetch(API_ENDPOINTS.AUTH.SIGNUP, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -155,7 +156,7 @@ export const AuthProvider = ({ children }) => {
 
   const requestPasswordReset = async (email) => {
     try {
-      const response = await fetch('http://localhost:5174/api/auth/forgot-password', {
+      const response = await fetch(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -181,7 +182,7 @@ export const AuthProvider = ({ children }) => {
 
   const resetPassword = async (token, newPassword) => {
     try {
-      const response = await fetch('http://localhost:5174/api/auth/reset-password', {
+      const response = await fetch(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

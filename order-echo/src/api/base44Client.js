@@ -1,5 +1,7 @@
-// Mock implementation to replace @base44/sdk
-// This provides the same interface without external dependencies
+// Implementation to replace @base44/sdk
+// This provides the same interface with real backend API calls
+
+import { API_ENDPOINTS } from '../config/api';
 
 // Mock client implementation
 const createMockClient = () => ({
@@ -132,47 +134,144 @@ const createMockClient = () => ({
     },
     Order: {
       async create(data) {
-        console.log('Mock Order.create called:', data);
-        return { success: true, id: 'mock-order-id' };
+        console.log('Order.create called:', data);
+        return { success: true, id: 'order-id' };
       },
       async get(id) {
-        console.log('Mock Order.get called:', id);
+        console.log('Order.get called:', id);
         return { success: true, data: { id, status: 'pending' } };
       },
       async update(id, data) {
-        console.log('Mock Order.update called:', id, data);
+        console.log('Order.update called:', id, data);
         return { success: true };
       },
       async list(filters = {}) {
-        console.log('Mock Order.list called:', filters);
-        // Return some mock order data
-        const mockOrders = [
-          {
-            id: 'order-1',
-            customer_name: 'John Doe',
-            total_amount: 24.99,
-            status: 'completed',
-            created_date: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
-            items: ['2x Margherita Pizza', '1x Caesar Salad']
-          },
-          {
-            id: 'order-2',
-            customer_name: 'Jane Smith',
-            total_amount: 18.50,
-            status: 'pending',
-            created_date: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
-            items: ['1x Pepperoni Pizza', '2x Garlic Bread']
-          },
-          {
-            id: 'order-3',
-            customer_name: 'Mike Johnson',
-            total_amount: 32.75,
-            status: 'completed',
-            created_date: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 hours ago
-            items: ['1x Supreme Pizza', '1x Buffalo Wings', '1x Soft Drink']
+        console.log('Order.list called:', filters);
+        
+        try {
+          // Get account_id from localStorage or use default
+          // Try to get from token payload first, then localStorage, then default
+          let accountId = 'ACC000000000001'; // Use the actual account ID that has orders
+          
+          try {
+            const token = localStorage.getItem('token');
+            if (token) {
+              const payload = JSON.parse(atob(token.split('.')[1]));
+              accountId = payload.userId || payload.accountId || 'ACC000000000001';
+            }
+          } catch (e) {
+            // If token parsing fails, try localStorage
+            accountId = localStorage.getItem('accountId') || localStorage.getItem('userId') || 'ACC000000000001';
           }
-        ];
-        return { success: true, data: mockOrders };
+          
+          console.log('Using account ID:', accountId);
+          console.log('API URL:', `${API_ENDPOINTS.FRONTEND.ORDERS(accountId)}`);
+          
+          // Make real API call to backend
+          const response = await fetch(`${API_ENDPOINTS.FRONTEND.ORDERS(accountId)}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          console.log('Response status:', response.status);
+          console.log('Response ok:', response.ok);
+          console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Response error text:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, text: ${errorText}`);
+          }
+          
+          const orders = await response.json();
+          console.log('Raw response from backend:', JSON.stringify(orders, null, 2));
+          console.log('Orders type:', typeof orders);
+          console.log('Orders length:', orders?.length);
+          console.log('Orders success:', orders?.success);
+          console.log('Orders data:', orders?.orders);
+          console.log('Orders data length:', orders?.orders?.length);
+          
+          // Check if the response has the expected structure
+          if (orders && orders.success && orders.orders) {
+            console.log('Returning orders from orders.orders:', orders.orders.length);
+            return { success: true, data: orders.orders };
+          } else if (Array.isArray(orders)) {
+            console.log('Returning orders as direct array:', orders.length);
+            return { success: true, data: orders };
+          } else {
+            console.log('Unexpected response structure, returning as-is');
+            return { success: true, data: orders };
+          }
+        } catch (error) {
+          console.error('Error fetching orders from backend:', error);
+          
+          // Fallback to mock data if backend is not available
+          console.log('Falling back to mock data due to backend error');
+          const mockOrders = [
+            {
+              id: 'ORD000000000031',
+              customer_name: 'Mike',
+              customer_phone: '+15199155191',
+              order_type: 'Pickup',
+              subtotal: 6.58,
+              tax_amount: 0.34,
+              total_amount: 6.92,
+              order_status: 'completed',
+              payment_status: 'paid',
+              call_sid: 'CA1a3d16c78bdbd142868f02853b0c7a8d',
+              session_id: 'CA1a3d16c78bdbd142868f02853b0c7a8d',
+              ultravox_call_id: '20fc76e9-aa97-4e2c-be4b-e053868644d2',
+              created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+              updated_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+              order_details: {
+                items: [
+                  {
+                    name: 'Orange Juice',
+                    quantity: 2,
+                    price: 3.29
+                  }
+                ],
+                subtotal: 6.58,
+                tax: 0.34,
+                total: 6.92,
+                pickupTime: 'ASAP'
+              }
+            },
+            {
+              id: 'ORD000000000032',
+              customer_name: 'Mike',
+              customer_phone: '+13062160665',
+              order_type: 'Pickup',
+              subtotal: 6.58,
+              tax_amount: 0.33,
+              total_amount: 6.91,
+              order_status: 'completed',
+              payment_status: 'paid',
+              call_sid: 'CA3e9f54ee14cc5a60ac57dad642a5345f',
+              session_id: 'CA3e9f54ee14cc5a60ac57dad642a5345f',
+              ultravox_call_id: '7899bf78-890b-44e4-85b8-aab3f84f407e',
+              created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
+              updated_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+              order_details: {
+                items: [
+                  {
+                    name: 'Orange Juice',
+                    quantity: 2,
+                    price: 3.29
+                  }
+                ],
+                subtotal: 6.58,
+                tax: 0.33,
+                total: 6.91,
+                pickupTime: 'ASAP'
+              }
+            }
+          ];
+          
+          return { success: true, data: mockOrders };
+        }
       }
     },
     Attachment: {

@@ -1,4 +1,6 @@
 // Local data service to replace Base44 functionality
+import { API_BASE_URL } from '../config/api';
+
 export class LocalDataService {
   static async createLead(data) {
     // Simulate API call with local storage
@@ -36,8 +38,8 @@ export class LocalDataService {
 
 // Attempt remote submit first, then fallback to local storage
 async function createLeadRemote(data) {
-  const baseUrl = import.meta?.env?.VITE_API_BASE_URL || "http://localhost:8001/api";
-  const url = `${baseUrl.replace(/\/$/, "")}/leads`;
+  const baseUrl = API_BASE_URL;
+  const url = `${baseUrl.replace(/\/$/, "")}/api/leads`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
