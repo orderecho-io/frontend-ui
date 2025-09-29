@@ -21,10 +21,22 @@ jobs:
         
     - name: Install dependencies
       run: |
-        if [ -f package-lock.json ]; then
-          npm ci
+        echo "Current directory: $(pwd)"
+        echo "Files in current directory:"
+        ls -la
+        echo "Looking for package.json..."
+        if [ -f package.json ]; then
+          echo "Found package.json"
+          if [ -f package-lock.json ]; then
+            echo "Found package-lock.json, using npm ci"
+            npm ci
+          else
+            echo "No package-lock.json, using npm install"
+            npm install
+          fi
         else
-          npm install
+          echo "ERROR: package.json not found in current directory"
+          exit 1
         fi
       
     - name: Run tests
