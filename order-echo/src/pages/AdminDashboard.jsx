@@ -289,6 +289,7 @@ const AdminDashboard = () => {
     
     try {
       const token = localStorage.getItem('token');
+      console.log('🔍 Debug: Fetching accounts for user:', userId);
       
       // First find the account associated with this user
       const accountsResponse = await fetch('/api/admin/accounts', {
@@ -298,39 +299,40 @@ const AdminDashboard = () => {
         }
       });
       
+      console.log('🔍 Debug: Response status:', accountsResponse.status);
+      
       if (!accountsResponse.ok) {
-        throw new Error('Failed to fetch accounts');
+        const errorText = await accountsResponse.text();
+        console.error('❌ Accounts fetch failed:', errorText);
+        throw new Error(`Failed to fetch accounts: ${accountsResponse.status}`);
       }
       
       const allAccounts = await accountsResponse.json();
+      console.log('🔍 Debug: Received accounts:', allAccounts.length, 'records');
+      
       const userAccount = allAccounts.find(acc => acc.user_id === userId);
       
       if (userAccount) {
-        // Fetch detailed account information
-        const detailsResponse = await fetch(`/api/admin/account/${userAccount.id}/details`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (detailsResponse.ok) {
-          const details = await detailsResponse.json();
-          setAccountDetails(details);
-          setShowAccountModal(true);
-        } else {
-          // Fallback to account data if details endpoint fails
-          setAccountDetails({ account: userAccount });
-          setShowAccountModal(true);
-        }
+        console.log('✅ Found account for user:', userAccount);
+        // Use the account data directly (the endpoint already has enough info)
+        setAccountDetails({ account: userAccount });
+        setShowAccountModal(true);
       } else {
+        console.log('❌ No account found for user:', userId);
         // User has no account
         setAccountDetails({ account: null, user_id: userId });
         setShowAccountModal(true);
       }
     } catch (error) {
       console.error('Error fetching account details:', error);
-      alert('Failed to fetch account details');
+      
+      // Instead of showing alert, show modal with error state
+      setAccountDetails({ 
+        account: null, 
+        user_id: userId,
+        error: error.message || 'Failed to fetch account details'
+      });
+      setShowAccountModal(true);
     } finally {
       setLoading(false);
     }
@@ -489,7 +491,13 @@ const AccountDetailsModal = ({ user, accountDetails, onClose, onUpdate }) => {
         </div>
 
         <div className="p-6">
-          {accountDetails?.account ? (
+          {accountDetails?.error ? (
+            <div className="text-center py-8">
+              <h3 className="text-lg font-medium text-red-900 mb-2">Error Loading Account Details</h3>
+              <p className="text-red-600 mb-4">{accountDetails.error}</p>
+              <p className="text-sm text-gray-600">Please check the browser console for more details.</p>
+            </div>
+          ) : accountDetails?.account ? (
             <>
               {/* Account Information */}
               <div className="mb-8">
