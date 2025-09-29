@@ -45,13 +45,25 @@ jobs:
         mkdir -p ~/.ssh
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
+        
+        # Debug: Check environment variables
+        echo "Server IP: $SERVER_IP"
+        echo "Server User: $SERVER_USER"
+        
+        # Add server to known hosts
+        if [ -n "$SERVER_IP" ]; then
+          ssh-keyscan -H "$SERVER_IP" >> ~/.ssh/known_hosts
+        else
+          echo "ERROR: SERVER_IP is not set"
+          exit 1
+        fi
         
         # Deploy frontend build
-        rsync -avz --delete order-echo/dist/ $SERVER_USER@$SERVER_IP:/var/www/orderecho/
+        rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
+          order-echo/dist/ $SERVER_USER@$SERVER_IP:/var/www/orderecho/
         
         # Reload nginx
-        ssh $SERVER_USER@$SERVER_IP "sudo systemctl reload nginx"
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "sudo systemctl reload nginx"
         
     - name: Verify frontend deployment
       if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
