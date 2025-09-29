@@ -1,0 +1,61 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run tests
+      run: |
+        # Add your frontend tests here
+        echo "Frontend tests would run here"
+        
+    - name: Build frontend
+      run: npm run build
+      
+    - name: Deploy frontend to server
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      env:
+        SERVER_IP: ${{ secrets.SERVER_IP }}
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        SERVER_USER: ${{ secrets.SERVER_USER }}
+      run: |
+        # Setup SSH
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
+        
+        # Deploy frontend build
+        rsync -avz --delete dist/ $SERVER_USER@$SERVER_IP:/var/www/orderecho/
+        
+        # Reload nginx
+        ssh $SERVER_USER@$SERVER_IP "sudo systemctl reload nginx"
+        
+    - name: Verify frontend deployment
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      env:
+        SERVER_IP: ${{ secrets.SERVER_IP }}
+      run: |
+        # Check frontend
+        curl -f http://$SERVER_IP/ || exit 1
+        
+        echo "✅ Frontend deployment verified successfully!"
