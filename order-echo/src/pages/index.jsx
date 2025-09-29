@@ -9,6 +9,7 @@ import MenuFiles from "./MenuFiles";
 import Orders from "./Orders";
 import Profile from "./Profile";
 import AdminDashboard from "./AdminDashboard";
+import AccountDetail from "./AccountDetail";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 import SuperAdminRoute from "../components/auth/SuperAdminRoute";
 
@@ -119,6 +120,16 @@ function PagesContent() {
                         <ProtectedRoute requireAuth={true}>
                             <SuperAdminRoute>
                                 <AdminDashboard />
+                            </SuperAdminRoute>
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/admin/account/:accountId" 
+                    element={
+                        <ProtectedRoute requireAuth={true}>
+                            <SuperAdminRoute>
+                                <AccountDetail />
                             </SuperAdminRoute>
                         </ProtectedRoute>
                     } 

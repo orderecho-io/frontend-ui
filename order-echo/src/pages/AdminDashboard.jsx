@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users2, 
   Store, 
@@ -20,6 +21,7 @@ import AdminDataTable from '../components/admin/AdminDataTable';
 import AdminFilters from '../components/admin/AdminFilters';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('stats');
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
@@ -314,25 +316,15 @@ const AdminDashboard = () => {
       
       if (userAccount) {
         console.log('✅ Found account for user:', userAccount);
-        // Use the account data directly (the endpoint already has enough info)
-        setAccountDetails({ account: userAccount });
-        setShowAccountModal(true);
+        // Navigate to account detail page
+        navigate(`/admin/account/${userAccount.id}`);
       } else {
         console.log('❌ No account found for user:', userId);
-        // User has no account
-        setAccountDetails({ account: null, user_id: userId });
-        setShowAccountModal(true);
+        alert('No account found for this user');
       }
     } catch (error) {
       console.error('Error fetching account details:', error);
-      
-      // Instead of showing alert, show modal with error state
-      setAccountDetails({ 
-        account: null, 
-        user_id: userId,
-        error: error.message || 'Failed to fetch account details'
-      });
-      setShowAccountModal(true);
+      alert(`Failed to fetch account details: ${error.message}`);
     } finally {
       setLoading(false);
     }
