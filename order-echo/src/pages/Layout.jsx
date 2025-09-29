@@ -11,7 +11,7 @@ export default function Layout({ children }) {
     console.log('Layout render - loading:', loading, 'isAuthenticated:', isAuthenticated, 'pathname:', location.pathname);
     
     // Define which pages should show the sidebar (authenticated pages)
-    const authenticatedPages = ['/dashboard', '/orders', '/menufiles', '/profile', '/settings'];
+    const authenticatedPages = ['/dashboard', '/orders', '/menufiles', '/profile', '/settings', '/admin'];
     const shouldShowSidebar = isAuthenticated && authenticatedPages.includes(location.pathname);
     
     console.log('Layout - shouldShowSidebar:', shouldShowSidebar);

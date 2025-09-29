@@ -8,7 +8,10 @@ import Dashboard from "./Dashboard";
 import MenuFiles from "./MenuFiles";
 import Orders from "./Orders";
 import Profile from "./Profile";
+import AdminDashboard from "./AdminDashboard";
+import AccountDetail from "./AccountDetail";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
+import SuperAdminRoute from "../components/auth/SuperAdminRoute";
 
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 
@@ -106,6 +109,28 @@ function PagesContent() {
                     element={
                         <ProtectedRoute requireAuth={true}>
                             <Profile />
+                        </ProtectedRoute>
+                    } 
+                />
+                
+                {/* Super Admin Routes */}
+                <Route 
+                    path="/admin" 
+                    element={
+                        <ProtectedRoute requireAuth={true}>
+                            <SuperAdminRoute>
+                                <AdminDashboard />
+                            </SuperAdminRoute>
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/admin/account/:accountId" 
+                    element={
+                        <ProtectedRoute requireAuth={true}>
+                            <SuperAdminRoute>
+                                <AccountDetail />
+                            </SuperAdminRoute>
                         </ProtectedRoute>
                     } 
                 />

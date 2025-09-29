@@ -16,6 +16,7 @@ export default function OrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [quickFilter, setQuickFilter] = useState('all');
   const [dateRange, setDateRange] = useState(undefined);
+  const [debugInfo, setDebugInfo] = useState(null);
 
   useEffect(() => {
     console.log('Orders page mounted, loading data...', location.pathname);
@@ -25,13 +26,97 @@ export default function OrdersPage() {
   const loadOrders = async () => {
     console.log('Orders page - loadOrders called');
     setIsLoading(true);
+    
+    // First, let's test if we can reach the backend at all
+    try {
+      console.log('Testing backend connectivity...');
+      const healthResponse = await fetch('http://localhost:8000/');
+      console.log('Backend health status:', healthResponse.status);
+      console.log('Backend health ok:', healthResponse.ok);
+      
+      if (healthResponse.ok) {
+        const healthData = await healthResponse.json();
+        console.log('Backend health data:', healthData);
+        
+        // Now test the orders API
+        console.log('Testing orders API call...');
+        const directResponse = await fetch('http://localhost:8000/api/orders/ACC000000000001');
+        console.log('Direct API response status:', directResponse.status);
+        console.log('Direct API response ok:', directResponse.ok);
+        console.log('Direct API response headers:', Object.fromEntries(directResponse.headers.entries()));
+        
+        if (directResponse.ok) {
+          const directData = await directResponse.json();
+          console.log('Direct API data:', directData);
+          console.log('Direct API orders count:', directData.orders?.length);
+          console.log('Direct API success:', directData.success);
+          console.log('Direct API total:', directData.total);
+          
+          // Set the data directly from the API call
+          setOrders(directData.orders || []);
+          setDebugInfo({
+            response: directData,
+            timestamp: new Date().toISOString(),
+            dataLength: directData.orders?.length,
+            firstOrder: directData.orders?.[0],
+            method: 'direct_api_call',
+            backendHealth: healthData
+          });
+          console.log('Orders page - data set from direct API call:', directData.orders?.length, 'orders');
+          setIsLoading(false);
+          return;
+        } else {
+          const errorText = await directResponse.text();
+          console.error('Orders API error response:', errorText);
+        }
+      }
+    } catch (directError) {
+      console.error('Direct API call failed:', directError);
+      console.error('Error details:', {
+        message: directError.message,
+        name: directError.name,
+        stack: directError.stack
+      });
+    }
+    
+    // Fallback to original method
     try {
       const ordersResponse = await Order.list('-created_date');
-      console.log('Orders page - API response:', ordersResponse);
-      setOrders(ordersResponse.data || []);
-      console.log('Orders page - data set successfully');
+      console.log('Orders page - FULL API response:', JSON.stringify(ordersResponse, null, 2));
+      console.log('Orders page - Response success:', ordersResponse.success);
+      console.log('Orders page - Response data type:', typeof ordersResponse.data);
+      console.log('Orders page - Response data length:', ordersResponse.data?.length);
+      console.log('Orders page - Response data:', ordersResponse.data);
+      
+      if (ordersResponse.success) {
+        setOrders(ordersResponse.data || []);
+        setDebugInfo({
+          response: ordersResponse,
+          timestamp: new Date().toISOString(),
+          dataLength: ordersResponse.data?.length,
+          firstOrder: ordersResponse.data?.[0],
+          method: 'order_list_method'
+        });
+        console.log('Orders page - data set successfully:', ordersResponse.data?.length, 'orders');
+        console.log('Orders page - First order:', ordersResponse.data?.[0]);
+      } else {
+        console.error('Orders page - API error:', ordersResponse.error);
+        setOrders([]);
+        setDebugInfo({
+          error: ordersResponse.error,
+          timestamp: new Date().toISOString(),
+          method: 'order_list_method'
+        });
+        // You could show a toast notification here if needed
+      }
     } catch (error) {
       console.error('Error loading orders:', error);
+      setOrders([]);
+      setDebugInfo({
+        error: error.message,
+        timestamp: new Date().toISOString(),
+        method: 'order_list_method'
+      });
     } finally {
       setIsLoading(false);
       console.log('Orders page - loading completed');
@@ -48,7 +133,7 @@ export default function OrdersPage() {
       const from = dateRange.from.setHours(0,0,0,0);
       const to = dateRange.to.setHours(23,59,59,999);
       return orders.filter(order => {
-        const orderDate = new Date(order.created_date);
+        const orderDate = new Date(order.created_at || order.created_date);
         return orderDate >= from && orderDate <= to;
       });
     }
@@ -66,7 +151,7 @@ export default function OrdersPage() {
       default: return orders;
     }
 
-    return orders.filter(order => new Date(order.created_date) >= startDate);
+    return orders.filter(order => new Date(order.created_at || order.created_date) >= startDate);
   };
 
   const filteredOrders = getFilteredOrders();
@@ -116,6 +201,54 @@ export default function OrdersPage() {
         <Card><CardContent className="p-6"><div className="flex items-center justify-between"><div><p className="text-sm font-medium text-gray-600">Average Order</p><p className="text-3xl font-bold text-gray-900">${filteredOrders.length > 0 ? (totalRevenue / filteredOrders.length).toFixed(2) : '0.00'}</p></div><CalendarIcon className="w-8 h-8 text-blue-500" /></div></CardContent></Card>
       </div>
 
+      {/* Debug Panel */}
+      {debugInfo && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardHeader>
+            <CardTitle className="text-yellow-800">🐛 Debug Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold text-yellow-800">Response Summary:</h4>
+                <p className="text-sm text-yellow-700">
+                  Data Length: {debugInfo.dataLength || 'N/A'} | 
+                  Method: {debugInfo.method || 'unknown'} |
+                  Timestamp: {debugInfo.timestamp} |
+                  Success: {debugInfo.response?.success ? 'Yes' : 'No'}
+                </p>
+                {debugInfo.backendHealth && (
+                  <p className="text-sm text-yellow-700">
+                    Backend Health: {JSON.stringify(debugInfo.backendHealth)}
+                  </p>
+                )}
+                {debugInfo.error && (
+                  <p className="text-sm text-red-700">
+                    Error: {debugInfo.error}
+                  </p>
+                )}
+              </div>
+              
+              {debugInfo.firstOrder && (
+                <div>
+                  <h4 className="font-semibold text-yellow-800">First Order Sample:</h4>
+                  <pre className="text-xs bg-white p-2 rounded border overflow-auto max-h-32">
+                    {JSON.stringify(debugInfo.firstOrder, null, 2)}
+                  </pre>
+                </div>
+              )}
+              
+              <div>
+                <h4 className="font-semibold text-yellow-800">Full Response:</h4>
+                <pre className="text-xs bg-white p-2 rounded border overflow-auto max-h-64">
+                  {JSON.stringify(debugInfo.response, null, 2)}
+                </pre>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader><CardTitle>Order List</CardTitle></CardHeader>
         <CardContent>
@@ -126,7 +259,7 @@ export default function OrdersPage() {
               {filteredOrders.map((order) => (
                 <div key={order.id} className="p-4 border rounded-lg hover:bg-gray-50">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1"><div className="flex items-center gap-3 mb-3"><Badge variant="outline" className="bg-green-50 text-green-700">Order #{order.id.slice(-8)}</Badge><span className="text-sm text-gray-500">{format(new Date(order.created_date), 'MMM dd, yyyy - h:mm a')}</span></div><div className="flex items-center gap-4 mb-3"><div className="flex items-center gap-2"><User className="w-4 h-4 text-gray-400" /><span className="font-medium">{order.customer_name || 'Anonymous'}</span></div>{order.customer_phone && (<span className="text-gray-500">{order.customer_phone}</span>)}</div>{order.items && order.items.length > 0 && (<div className="space-y-2"><h4 className="font-medium text-gray-700 text-sm">Items:</h4><div className="grid gap-2">{order.items.map((item, index) => (<div key={index} className="flex justify-between items-center bg-gray-100 p-2 rounded-md text-sm"><div className="flex items-center gap-2"><span className="font-medium">{item.name}</span><Badge variant="secondary">x{item.quantity}</Badge></div><span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span></div>))}</div></div>)}</div>
+                    <div className="flex-1"><div className="flex items-center gap-3 mb-3"><Badge variant="outline" className="bg-green-50 text-green-700">Order #{order.id.slice(-8)}</Badge><span className="text-sm text-gray-500">{format(new Date(order.created_at || order.created_date), 'MMM dd, yyyy - h:mm a')}</span></div><div className="flex items-center gap-4 mb-3"><div className="flex items-center gap-2"><User className="w-4 h-4 text-gray-400" /><span className="font-medium">{order.customer_name || 'Anonymous'}</span></div>{order.customer_phone && (<span className="text-gray-500">{order.customer_phone}</span>)}</div>{order.order_details && order.order_details.items && order.order_details.items.length > 0 && (<div className="space-y-2"><h4 className="font-medium text-gray-700 text-sm">Items:</h4><div className="grid gap-2">{order.order_details.items.map((item, index) => (<div key={index} className="flex justify-between items-center bg-gray-100 p-2 rounded-md text-sm"><div className="flex items-center gap-2"><span className="font-medium">{item.name}</span><Badge variant="secondary">x{item.quantity || 1}</Badge></div><span className="font-medium">${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</span></div>))}</div></div>)}</div>
                     <div className="text-right ml-4"><div className="text-2xl font-bold text-gray-900">${order.total_amount?.toFixed(2) || '0.00'}</div></div>
                   </div>
                 </div>
