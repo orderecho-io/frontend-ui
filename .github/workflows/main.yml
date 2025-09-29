@@ -43,8 +43,15 @@ jobs:
       run: |
         # Setup SSH
         mkdir -p ~/.ssh
-        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        
+        # Write SSH key and fix line endings
+        echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
+        
+        # Debug: Check key format
+        echo "Checking SSH key format..."
+        head -1 ~/.ssh/id_rsa
+        tail -1 ~/.ssh/id_rsa
         
         # Debug: Check environment variables
         echo "Server IP: $SERVER_IP"
@@ -58,11 +65,25 @@ jobs:
           exit 1
         fi
         
+        # Test SSH connection
+        echo "Testing SSH connection..."
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -o BatchMode=yes $SERVER_USER@$SERVER_IP "echo 'SSH connection successful'"
+        
+        # Temporarily change ownership to ec2-user for deployment
+        echo "Setting deployment permissions..."
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "sudo chown -R ec2-user:ec2-user /var/www/orderecho"
+        
         # Deploy frontend build
+        echo "Deploying frontend files..."
         rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" \
           order-echo/dist/ $SERVER_USER@$SERVER_IP:/var/www/orderecho/
         
+        # Change ownership back to nginx
+        echo "Restoring nginx ownership..."
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "sudo chown -R nginx:nginx /var/www/orderecho && sudo chmod -R 755 /var/www/orderecho"
+        
         # Reload nginx
+        echo "Reloading nginx..."
         ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP "sudo systemctl reload nginx"
         
     - name: Verify frontend deployment
