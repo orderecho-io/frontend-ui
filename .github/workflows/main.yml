@@ -9,6 +9,9 @@ on:
 jobs:
   deploy-frontend:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./order-echo
     
     steps:
     - name: Checkout code
@@ -20,24 +23,7 @@ jobs:
         node-version: '18'
         
     - name: Install dependencies
-      run: |
-        echo "Current directory: $(pwd)"
-        echo "Files in current directory:"
-        ls -la
-        echo "Looking for package.json..."
-        if [ -f package.json ]; then
-          echo "Found package.json"
-          if [ -f package-lock.json ]; then
-            echo "Found package-lock.json, using npm ci"
-            npm ci
-          else
-            echo "No package-lock.json, using npm install"
-            npm install
-          fi
-        else
-          echo "ERROR: package.json not found in current directory"
-          exit 1
-        fi
+      run: npm ci
       
     - name: Run tests
       run: |
@@ -53,6 +39,7 @@ jobs:
         SERVER_IP: ${{ secrets.SERVER_IP }}
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         SERVER_USER: ${{ secrets.SERVER_USER }}
+      working-directory: ./
       run: |
         # Setup SSH
         mkdir -p ~/.ssh
@@ -61,7 +48,7 @@ jobs:
         ssh-keyscan -H $SERVER_IP >> ~/.ssh/known_hosts
         
         # Deploy frontend build
-        rsync -avz --delete dist/ $SERVER_USER@$SERVER_IP:/var/www/orderecho/
+        rsync -avz --delete order-echo/dist/ $SERVER_USER@$SERVER_IP:/var/www/orderecho/
         
         # Reload nginx
         ssh $SERVER_USER@$SERVER_IP "sudo systemctl reload nginx"
@@ -70,6 +57,7 @@ jobs:
       if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
       env:
         SERVER_IP: ${{ secrets.SERVER_IP }}
+      working-directory: ./
       run: |
         # Check frontend
         curl -f http://$SERVER_IP/ || exit 1
