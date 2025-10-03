@@ -2,8 +2,10 @@
 const getApiBaseUrl = () => {
   // Check if we're in production (deployed domain)
   if (window.location.hostname === 'orderecho.io' || window.location.hostname === 'www.orderecho.io') {
-    // Production environment - using orderecho.io domain
-    return 'https://api.orderecho.io'; // Backend API domain
+    // Production environment
+    // TEMPORARY: Use HTTP until SSL is set up on backend
+    // TODO: Change to https://api.orderecho.io after SSL setup
+    return 'http://3.99.0.53:8000'; // Temporary HTTP endpoint
   }
   
   // Check if we're using the AWS IP directly
