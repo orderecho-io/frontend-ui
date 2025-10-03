@@ -1,8 +1,14 @@
 // API Configuration for different environments
 const getApiBaseUrl = () => {
-  // Check if we're in production (deployed on AWS)
+  // Check if we're in production (deployed domain)
+  if (window.location.hostname === 'orderecho.io' || window.location.hostname === 'www.orderecho.io') {
+    // Production environment - using orderecho.io domain
+    return 'https://api.orderecho.io'; // Backend API domain
+  }
+  
+  // Check if we're using the AWS IP directly
   if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    // Production environment - using your AWS server
+    // AWS environment - using your AWS server IP (for testing)
     return 'http://3.99.0.53:8000'; // Your AWS server IP with Python backend port
   }
   
