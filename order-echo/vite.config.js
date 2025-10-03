@@ -5,9 +5,23 @@ import path from 'path'
 // Get version from environment or use current date
 const version = process.env.VITE_VERSION || new Date().toISOString().split('T')[0].replace(/-/g, '')
 
+// Plugin to add version query string to HTML references
+function versionPlugin() {
+  return {
+    name: 'html-version-transform',
+    transformIndexHtml(html) {
+      // Add version query string to all asset references in HTML
+      return html.replace(
+        /(href|src)="([^"]+\.(js|css|png|jpg|jpeg|svg|gif|webp))"/g,
+        `$1="$2?v=${version}"`
+      )
+    }
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), versionPlugin()],
   server: {
     allowedHosts: true,
     proxy: {
@@ -16,17 +30,6 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
-  },
-  build: {
-    // Add version query string to all assets for cache busting
-    rollupOptions: {
-      output: {
-        // Add version to chunk file names
-        entryFileNames: `assets/[name]-[hash].js?v=${version}`,
-        chunkFileNames: `assets/[name]-[hash].js?v=${version}`,
-        assetFileNames: `assets/[name]-[hash].[ext]?v=${version}`,
-      }
-    }
   },
   resolve: {
     alias: {
