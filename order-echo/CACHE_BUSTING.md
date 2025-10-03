@@ -8,12 +8,27 @@ This project uses **automatic cache-busting** with version query strings to ensu
 
 ### 1. Build-Time Version Injection
 
-The `vite.config.js` automatically adds version query strings to all built assets:
+The `vite.config.js` uses a custom plugin to add version query strings to HTML references:
 
 ```javascript
-// Automatically generates: index-ABC123.js?v=20241003
-entryFileNames: `assets/[name]-[hash].js?v=${version}`
+// Plugin transforms HTML to add version query strings
+function versionPlugin() {
+  return {
+    name: 'html-version-transform',
+    transformIndexHtml(html) {
+      return html.replace(
+        /(href|src)="([^"]+\.(js|css|png|jpg|jpeg|svg|gif|webp))"/g,
+        `$1="$2?v=${version}"`
+      )
+    }
+  }
+}
+
+// Result: <script src="/assets/index-ABC123.js?v=20241003">
+// File on disk: /assets/index-ABC123.js (no query string)
 ```
+
+**Important:** The query string is added to the HTML `src` and `href` attributes, NOT to the actual file names. This ensures proper MIME type detection by the server.
 
 ### 2. Version Generation
 
