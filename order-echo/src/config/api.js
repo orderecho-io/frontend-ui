@@ -15,10 +15,11 @@ const getApiBaseUrl = () => {
   const protocol = window.location.protocol; // http: or https:
   const hostname = window.location.hostname;  // orderecho.io or 3.99.0.53
   
-  // If using the production domain (orderecho.io), use HTTPS for backend
+  // If using the production domain (orderecho.io), use HTTP for backend
   if (hostname === 'orderecho.io' || hostname === 'www.orderecho.io') {
-    // Use HTTPS - SSL is configured on port 8000
-    return `https://${hostname}:8000`;
+    // TEMPORARY: Use HTTP until SSL is set up on port 8000
+    // After running SSL setup script, change this to https://
+    return `http://${hostname}:8000`;
   }
   
   // 4. Fallback for AWS IP or other hostnames
