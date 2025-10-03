@@ -1,21 +1,31 @@
 // API Configuration for different environments
 const getApiBaseUrl = () => {
-  // Check if we're in production (deployed domain)
-  if (window.location.hostname === 'orderecho.io' || window.location.hostname === 'www.orderecho.io') {
-    // Production environment
-    // TEMPORARY: Use HTTP until SSL is set up on backend
-    // TODO: Change to https://api.orderecho.io after SSL setup
-    return 'http://3.99.0.53:8000'; // Temporary HTTP endpoint
+  // 1. Check for explicit environment variable (highest priority)
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
   }
   
-  // Check if we're using the AWS IP directly
-  if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    // AWS environment - using your AWS server IP (for testing)
-    return 'http://3.99.0.53:8000'; // Your AWS server IP with Python backend port
+  // 2. Development environment (localhost)
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:8000';
   }
   
-  // Development environment
-  return 'http://localhost:8000';
+  // 3. Production environment - Use same origin with port 8000
+  // This allows the frontend to work on any domain without hardcoding IPs
+  const protocol = window.location.protocol; // http: or https:
+  const hostname = window.location.hostname;  // orderecho.io or 3.99.0.53
+  
+  // If using the production domain (orderecho.io), use the backend API subdomain or port
+  if (hostname === 'orderecho.io' || hostname === 'www.orderecho.io') {
+    // Option A: Use subdomain (requires DNS A record for api.orderecho.io)
+    // return `${protocol}//api.orderecho.io`;
+    
+    // Option B: Use same host with port 8000 (current setup)
+    return `${protocol}//${hostname}:8000`;
+  }
+  
+  // 4. Fallback for AWS IP or other hostnames - use same origin with port 8000
+  return `${protocol}//${hostname}:8000`;
 };
 
 export const API_BASE_URL = getApiBaseUrl();
