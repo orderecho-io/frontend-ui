@@ -42,7 +42,7 @@ const AdminDashboard = () => {
 
   const tabs = [
     { id: 'stats', label: 'Dashboard Overview', icon: TrendingUp },
-    { id: 'users', label: 'Users', icon: Users2 },
+    { id: 'users', label: 'Users & Accounts', icon: Users2 },
     { id: 'accounts', label: 'Restaurants', icon: Store },
     { id: 'leads', label: 'Leads', icon: Mail },
     { id: 'calls', label: 'Call History', icon: Phone }
@@ -65,7 +65,8 @@ const AdminDashboard = () => {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/stats', {
+      // Use the new super admin endpoint
+      const response = await fetch('/api/admin/dashboard/stats', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -97,7 +98,27 @@ const AdminDashboard = () => {
         filters.status
       );
       
-      const response = await fetch(`/api/admin/${type}?${params}`, {
+      let endpoint = '';
+      switch (type) {
+        case 'users':
+          // Use new combined users endpoint that includes account info
+          endpoint = `/api/admin/users?${params}`;
+          break;
+        case 'accounts':
+          // For accounts, we'll use the same users endpoint but filter for those with accounts
+          endpoint = `/api/admin/users?${params}`;
+          break;
+        case 'leads':
+          endpoint = `/api/admin/leads?${params}`;
+          break;
+        case 'calls':
+          endpoint = `/api/admin/calls?${params}`;
+          break;
+        default:
+          endpoint = `/api/admin/${type}?${params}`;
+      }
+      
+      const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -106,12 +127,16 @@ const AdminDashboard = () => {
       
       if (response.ok) {
         const data = await response.json();
+        
         switch (type) {
           case 'users':
-            setUsers(data);
+            // The new API returns accounts array with user info
+            setUsers(data.accounts || data);
             break;
           case 'accounts':
-            setAccounts(data);
+            // Filter for users that have accounts
+            const accountsData = data.accounts || data;
+            setAccounts(accountsData.filter(item => item.account_id));
             break;
           case 'leads':
             setLeads(data);
@@ -132,25 +157,29 @@ const AdminDashboard = () => {
     switch (activeTab) {
       case 'users':
         return [
-          { key: 'id', label: 'User ID', sortable: true, type: 'link' },
+          { key: 'user_id', label: 'User ID', sortable: true, type: 'link' },
           { key: 'first_name', label: 'First Name', sortable: true },
           { key: 'last_name', label: 'Last Name', sortable: true },
           { key: 'email', label: 'Email', sortable: true },
           { key: 'role', label: 'Role', sortable: true },
           { key: 'is_active', label: 'Active', type: 'boolean' },
-          { key: 'restaurants_count', label: 'Restaurants', type: 'number' },
-          { key: 'created_at', label: 'Created', type: 'date', sortable: true }
+          { key: 'restaurant_name', label: 'Restaurant', sortable: true },
+          { key: 'subscription_plan', label: 'Plan', sortable: true },
+          { key: 'user_created_at', label: 'Created', type: 'date', sortable: true }
         ];
       case 'accounts':
         return [
           { key: 'restaurant_name', label: 'Restaurant Name', sortable: true },
-          { key: 'owner_name', label: 'Owner', sortable: true },
+          { key: 'first_name', label: 'Owner First', sortable: true },
+          { key: 'last_name', label: 'Owner Last', sortable: true },
+          { key: 'email', label: 'Email', sortable: true },
+          { key: 'restaurant_phone', label: 'Phone' },
           { key: 'cuisine_type', label: 'Cuisine', sortable: true },
-          { key: 'is_active', label: 'Active', type: 'boolean' },
+          { key: 'account_active', label: 'Active', type: 'boolean' },
           { key: 'subscription_plan', label: 'Plan', sortable: true },
+          { key: 'subscription_status', label: 'Status', sortable: true },
           { key: 'total_orders', label: 'Orders', type: 'number' },
-          { key: 'total_revenue', label: 'Revenue', type: 'currency' },
-          { key: 'created_at', label: 'Created', type: 'date', sortable: true }
+          { key: 'account_created_at', label: 'Created', type: 'date', sortable: true }
         ];
       case 'leads':
         return [
@@ -204,8 +233,9 @@ const AdminDashboard = () => {
       case 'accounts':
         return [
           { value: '', label: 'All Plans' },
+          { value: 'free', label: 'Free' },
           { value: 'basic', label: 'Basic' },
-          { value: 'pro', label: 'Pro' },
+          { value: 'premium', label: 'Premium' },
           { value: 'enterprise', label: 'Enterprise' }
         ];
       case 'leads':
@@ -250,10 +280,15 @@ const AdminDashboard = () => {
     // Determine which endpoint to call based on active tab
     switch (activeTab) {
       case 'users':
-        updateUrl = `/api/admin/users/${itemData.id}`;
+        // For users, we might update the user or account depending on what changed
+        if (itemData.account_id) {
+          updateUrl = `/api/admin/accounts/${itemData.account_id}`;
+        } else {
+          updateUrl = `/api/admin/users/${itemData.user_id}`;
+        }
         break;
       case 'accounts':
-        updateUrl = `/api/admin/accounts/${itemData.id}`;
+        updateUrl = `/api/admin/accounts/${itemData.account_id}`;
         break;
       case 'leads':
         updateUrl = `/api/admin/leads/${itemData.id}`;
@@ -291,40 +326,33 @@ const AdminDashboard = () => {
     
     try {
       const token = localStorage.getItem('token');
-      console.log('🔍 Debug: Fetching accounts for user:', userId);
+      console.log('🔍 Debug: Fetching user details for:', userId);
       
-      // First find the account associated with this user
-      const accountsResponse = await fetch('/api/admin/accounts', {
+      // Use the new detailed user endpoint
+      const response = await fetch(`/api/admin/users/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
       
-      console.log('🔍 Debug: Response status:', accountsResponse.status);
+      console.log('🔍 Debug: Response status:', response.status);
       
-      if (!accountsResponse.ok) {
-        const errorText = await accountsResponse.text();
-        console.error('❌ Accounts fetch failed:', errorText);
-        throw new Error(`Failed to fetch accounts: ${accountsResponse.status}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ User details fetch failed:', errorText);
+        throw new Error(`Failed to fetch user details: ${response.status}`);
       }
       
-      const allAccounts = await accountsResponse.json();
-      console.log('🔍 Debug: Received accounts:', allAccounts.length, 'records');
+      const userDetails = await response.json();
+      console.log('✅ Received user details:', userDetails);
       
-      const userAccount = allAccounts.find(acc => acc.user_id === userId);
+      setAccountDetails(userDetails);
+      setShowAccountModal(true);
       
-      if (userAccount) {
-        console.log('✅ Found account for user:', userAccount);
-        // Navigate to account detail page
-        navigate(`/admin/account/${userAccount.id}`);
-      } else {
-        console.log('❌ No account found for user:', userId);
-        alert('No account found for this user');
-      }
     } catch (error) {
-      console.error('Error fetching account details:', error);
-      alert(`Failed to fetch account details: ${error.message}`);
+      console.error('Error fetching user details:', error);
+      alert(`Failed to fetch user details: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -380,8 +408,8 @@ const AdminDashboard = () => {
             filters={filters}
             onFiltersChange={setFilters}
             searchPlaceholder={
-              activeTab === 'users' ? 'Search by name or email...' :
-              activeTab === 'accounts' ? 'Search by restaurant name...' :
+              activeTab === 'users' ? 'Search by name, email, or restaurant...' :
+              activeTab === 'accounts' ? 'Search by restaurant name or owner...' :
               activeTab === 'leads' ? 'Search by restaurant or contact...' :
               'Search by caller name or phone...'
             }
@@ -399,7 +427,7 @@ const AdminDashboard = () => {
               columns={getColumns()}
               loading={loading}
               title={
-                activeTab === 'users' ? 'System Users' :
+                activeTab === 'users' ? 'System Users & Accounts' :
                 activeTab === 'accounts' ? 'Restaurant Accounts' :
                 activeTab === 'leads' ? 'Lead Pipeline' :
                 'Call History'
@@ -431,28 +459,78 @@ const AdminDashboard = () => {
   );
 };
 
-// Account Details Modal Component
+// Enhanced Account Details Modal Component
 const AccountDetailsModal = ({ user, accountDetails, onClose, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedAccount, setEditedAccount] = useState(accountDetails?.account || {});
+  const [editedAccount, setEditedAccount] = useState({});
+  const [editedSettings, setEditedSettings] = useState({});
   const [loading, setLoading] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState('account');
+
+  useEffect(() => {
+    if (accountDetails?.user) {
+      setEditedAccount(accountDetails.user);
+    }
+    if (accountDetails?.settings) {
+      const settingsObj = {};
+      accountDetails.settings.forEach(setting => {
+        const key = setting.key.split('_').slice(1).join('_'); // Remove account_id prefix
+        settingsObj[key] = setting.value;
+      });
+      setEditedSettings(settingsObj);
+    }
+  }, [accountDetails]);
 
   const handleSave = async () => {
     setLoading(true);
     try {
-      await onUpdate(editedAccount);
+      if (activeSubTab === 'account' && accountDetails?.user?.account_id) {
+        // Update account information
+        await fetch(`/api/admin/accounts/${accountDetails.user.account_id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(editedAccount)
+        });
+      } else if (activeSubTab === 'settings') {
+        // Update settings
+        for (const [key, value] of Object.entries(editedSettings)) {
+          await fetch(`/api/admin/accounts/${accountDetails.user.account_id}/settings/${key}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ value })
+          });
+        }
+      }
+      
       setIsEditing(false);
+      alert('Update successful!');
       onClose(); // Refresh the parent data
     } catch (error) {
-      console.error('Failed to update account:', error);
-      alert('Failed to update account');
+      console.error('Failed to update:', error);
+      alert('Failed to update');
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancel = () => {
-    setEditedAccount(accountDetails?.account || {});
+    if (accountDetails?.user) {
+      setEditedAccount(accountDetails.user);
+    }
+    if (accountDetails?.settings) {
+      const settingsObj = {};
+      accountDetails.settings.forEach(setting => {
+        const key = setting.key.split('_').slice(1).join('_');
+        settingsObj[key] = setting.value;
+      });
+      setEditedSettings(settingsObj);
+    }
     setIsEditing(false);
   };
 
@@ -461,18 +539,24 @@ const AccountDetailsModal = ({ user, accountDetails, onClose, onUpdate }) => {
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading account details...</p>
+          <p className="mt-2 text-gray-600">Loading user details...</p>
         </div>
       </div>
     );
   }
 
+  const subTabs = [
+    { id: 'account', label: 'Account Info' },
+    { id: 'settings', label: 'Settings' },
+    { id: 'hours', label: 'Working Hours' }
+  ];
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-auto">
+      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-auto">
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-2xl font-bold text-gray-900">
-            {accountDetails?.account ? 'Account Details' : 'User Profile - No Account'}
+            {accountDetails?.user ? 'User & Account Details' : 'User Profile - No Account'}
           </h2>
           <button
             onClick={onClose}
@@ -482,162 +566,313 @@ const AccountDetailsModal = ({ user, accountDetails, onClose, onUpdate }) => {
           </button>
         </div>
 
+        {/* Sub-tabs */}
+        {accountDetails?.user?.account_id && (
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-8 px-6">
+              {subTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveSubTab(tab.id)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeSubTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        )}
+
         <div className="p-6">
           {accountDetails?.error ? (
             <div className="text-center py-8">
-              <h3 className="text-lg font-medium text-red-900 mb-2">Error Loading Account Details</h3>
+              <h3 className="text-lg font-medium text-red-900 mb-2">Error Loading User Details</h3>
               <p className="text-red-600 mb-4">{accountDetails.error}</p>
-              <p className="text-sm text-gray-600">Please check the browser console for more details.</p>
             </div>
-          ) : accountDetails?.account ? (
+          ) : accountDetails?.user ? (
             <>
-              {/* Account Information */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold mb-4">Account Information</h3>
-                <div className="grid grid-cols-2 gap-4">
+              {/* Account Information Tab */}
+              {activeSubTab === 'account' && (
+                <div className="grid grid-cols-2 gap-6">
+                  {/* User Information */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Restaurant Name</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedAccount.restaurant_name || ''}
-                        onChange={(e) => setEditedAccount({...editedAccount, restaurant_name: e.target.value})}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                      />
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">{accountDetails.account.restaurant_name}</p>
-                    )}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Business Phone</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedAccount.business_phone || ''}
-                        onChange={(e) => setEditedAccount({...editedAccount, business_phone: e.target.value})}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                      />
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">{accountDetails.account.business_phone}</p>
-                    )}
+                    <h3 className="text-lg font-semibold mb-4">User Information</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">First Name</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedAccount.first_name || ''}
+                            onChange={(e) => setEditedAccount({...editedAccount, first_name: e.target.value})}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                          />
+                        ) : (
+                          <p className="mt-1 text-sm text-gray-900">{accountDetails.user.first_name}</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedAccount.last_name || ''}
+                            onChange={(e) => setEditedAccount({...editedAccount, last_name: e.target.value})}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                          />
+                        ) : (
+                          <p className="mt-1 text-sm text-gray-900">{accountDetails.user.last_name}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Email</label>
+                        <p className="mt-1 text-sm text-gray-900">{accountDetails.user.email}</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Phone</label>
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editedAccount.phone || ''}
+                            onChange={(e) => setEditedAccount({...editedAccount, phone: e.target.value})}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                          />
+                        ) : (
+                          <p className="mt-1 text-sm text-gray-900">{accountDetails.user.phone}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">Role</label>
+                        {isEditing ? (
+                          <select
+                            value={editedAccount.role || ''}
+                            onChange={(e) => setEditedAccount({...editedAccount, role: e.target.value})}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                          >
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                            <option value="super_admin">Super Admin</option>
+                          </select>
+                        ) : (
+                          <p className="mt-1 text-sm text-gray-900">{accountDetails.user.role}</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Subscription Plan</label>
-                    {isEditing ? (
-                      <select
-                        value={editedAccount.subscription_plan || ''}
-                        onChange={(e) => setEditedAccount({...editedAccount, subscription_plan: e.target.value})}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                      >
-                        <option value="basic">Basic</option>
-                        <option value="pro">Pro</option>
-                        <option value="enterprise">Enterprise</option>
-                      </select>
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">{accountDetails.account.subscription_plan}</p>
-                    )}
-                  </div>
+                  {/* Restaurant Information */}
+                  {accountDetails.user.account_id && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Restaurant Information</h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Restaurant Name</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={editedAccount.restaurant_name || ''}
+                              onChange={(e) => setEditedAccount({...editedAccount, restaurant_name: e.target.value})}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                          ) : (
+                            <p className="mt-1 text-sm text-gray-900">{accountDetails.user.restaurant_name}</p>
+                          )}
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Restaurant Phone</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              value={editedAccount.restaurant_phone || ''}
+                              onChange={(e) => setEditedAccount({...editedAccount, restaurant_phone: e.target.value})}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                          ) : (
+                            <p className="mt-1 text-sm text-gray-900">{accountDetails.user.restaurant_phone}</p>
+                          )}
+                        </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Subscription Status</label>
-                    {isEditing ? (
-                      <select
-                        value={editedAccount.subscription_status || ''}
-                        onChange={(e) => setEditedAccount({...editedAccount, subscription_status: e.target.value})}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                      >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="suspended">Suspended</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Address</label>
+                          {isEditing ? (
+                            <textarea
+                              value={editedAccount.address || ''}
+                              onChange={(e) => setEditedAccount({...editedAccount, address: e.target.value})}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                              rows={2}
+                            />
+                          ) : (
+                            <p className="mt-1 text-sm text-gray-900">{accountDetails.user.address}</p>
+                          )}
+                        </div>
 
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">
-                        <span className={`px-2 py-1 text-xs rounded-full ${
-                          accountDetails.account.subscription_status === 'active' 
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {accountDetails.account.subscription_status}
-                        </span>
-                      </p>
-                    )}
-                  </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Cuisine Type</label>
+                          {isEditing ? (
+                            <select
+                              value={editedAccount.cuisine_type || ''}
+                              onChange={(e) => setEditedAccount({...editedAccount, cuisine_type: e.target.value})}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                            >
+                              <option value="">Select cuisine type</option>
+                              <option value="american">American</option>
+                              <option value="italian">Italian</option>
+                              <option value="chinese">Chinese</option>
+                              <option value="mexican">Mexican</option>
+                              <option value="indian">Indian</option>
+                              <option value="japanese">Japanese</option>
+                              <option value="thai">Thai</option>
+                              <option value="mediterranean">Mediterranean</option>
+                              <option value="french">French</option>
+                              <option value="pizza">Pizza</option>
+                              <option value="burger">Burger</option>
+                              <option value="seafood">Seafood</option>
+                              <option value="other">Other</option>
+                            </select>
+                          ) : (
+                            <p className="mt-1 text-sm text-gray-900">{accountDetails.user.cuisine_type}</p>
+                          )}
+                        </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Business Address</label>
-                    {isEditing ? (
-                      <textarea
-                        value={editedAccount.business_address || ''}
-                        onChange={(e) => setEditedAccount({...editedAccount, business_address: e.target.value})}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                        rows={2}
-                      />
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">{accountDetails.account.business_address}</p>
-                    )}
-                  </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Subscription Plan</label>
+                          {isEditing ? (
+                            <select
+                              value={editedAccount.subscription_plan || ''}
+                              onChange={(e) => setEditedAccount({...editedAccount, subscription_plan: e.target.value})}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                            >
+                              <option value="free">Free</option>
+                              <option value="basic">Basic</option>
+                              <option value="premium">Premium</option>
+                              <option value="enterprise">Enterprise</option>
+                            </select>
+                          ) : (
+                            <p className="mt-1 text-sm text-gray-900">{accountDetails.user.subscription_plan}</p>
+                          )}
+                        </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Business Email</label>
-                    {isEditing ? (
-                      <input
-                        type="email"
-                        value={editedAccount.business_email || ''}
-                        onChange={(e) => setEditedAccount({...editedAccount, business_email: e.target.value})}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                      />
-                    ) : (
-                      <p className="mt-1 text-sm text-gray-900">{accountDetails.account.business_email}</p>
-                    )}
-                  </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Subscription Status</label>
+                          {isEditing ? (
+                            <select
+                              value={editedAccount.subscription_status || ''}
+                              onChange={(e) => setEditedAccount({...editedAccount, subscription_status: e.target.value})}
+                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                            >
+                              <option value="active">Active</option>
+                              <option value="inactive">Inactive</option>
+                              <option value="trial">Trial</option>
+                              <option value="expired">Expired</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                          ) : (
+                            <p className="mt-1 text-sm text-gray-900">
+                              <span className={`px-2 py-1 text-xs rounded-full ${
+                                accountDetails.user.subscription_status === 'active' 
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {accountDetails.user.subscription_status}
+                              </span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
 
-              {/* Order Summary */}
-              {accountDetails.recent_orders && accountDetails.recent_orders.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold mb-4">Recent Orders</h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {accountDetails.recent_orders.slice(0, 5).map((order, index) => (
-                          <tr key={index}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.customer_name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${order.total_amount}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{order.order_status}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {new Date(order.created_at).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              {/* Settings Tab */}
+              {activeSubTab === 'settings' && accountDetails.settings && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Account Settings</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    {accountDetails.settings.map((setting) => {
+                      const key = setting.key.split('_').slice(1).join('_');
+                      return (
+                        <div key={setting.id}>
+                          <label className="block text-sm font-medium text-gray-700">
+                            {setting.description || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </label>
+                          {isEditing ? (
+                            setting.data_type === 'boolean' ? (
+                              <select
+                                value={editedSettings[key] || ''}
+                                onChange={(e) => setEditedSettings({...editedSettings, [key]: e.target.value})}
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                              >
+                                <option value="true">True</option>
+                                <option value="false">False</option>
+                              </select>
+                            ) : (
+                              <input
+                                type={setting.data_type === 'number' ? 'number' : 'text'}
+                                value={editedSettings[key] || ''}
+                                onChange={(e) => setEditedSettings({...editedSettings, [key]: e.target.value})}
+                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                              />
+                            )
+                          ) : (
+                            <p className="mt-1 text-sm text-gray-900">{setting.value}</p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
-              {/* Call Summary */}
-              {accountDetails.call_summary && accountDetails.call_summary.length > 0 && (
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold mb-4">Call Summary</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {accountDetails.call_summary.map((call, index) => (
-                      <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                        <h4 className="font-medium text-gray-900">{call.call_status}</h4>
-                        <p className="text-sm text-gray-600">Count: {call.count}</p>
-                        {call.avg_duration && <p className="text-sm text-gray-600">Avg Duration: {call.avg_duration.toFixed(1)} min</p>}
+              {/* Working Hours Tab */}
+              {activeSubTab === 'hours' && accountDetails.working_hours && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">Working Hours</h3>
+                  <div className="space-y-4">
+                    {accountDetails.working_hours.map((hours) => (
+                      <div key={hours.id} className="flex items-center space-x-4 p-4 border rounded-lg">
+                        <div className="w-24">
+                          <span className="font-medium">{hours.day_of_week}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={hours.is_open}
+                            readOnly={!isEditing}
+                            className="rounded"
+                          />
+                          <span className="text-sm">Open</span>
+                        </div>
+                        {hours.is_open && (
+                          <>
+                            <div>
+                              <input
+                                type="time"
+                                value={hours.open_time || ''}
+                                readOnly={!isEditing}
+                                className="px-3 py-1 border border-gray-300 rounded-md"
+                              />
+                            </div>
+                            <span>to</span>
+                            <div>
+                              <input
+                                type="time"
+                                value={hours.close_time || ''}
+                                readOnly={!isEditing}
+                                className="px-3 py-1 border border-gray-300 rounded-md"
+                              />
+                            </div>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -661,7 +896,7 @@ const AccountDetailsModal = ({ user, accountDetails, onClose, onUpdate }) => {
             Close
           </button>
           
-          {accountDetails?.account && (
+          {accountDetails?.user && (
             <>
               {isEditing ? (
                 <>
@@ -685,7 +920,7 @@ const AccountDetailsModal = ({ user, accountDetails, onClose, onUpdate }) => {
                   onClick={() => setIsEditing(true)}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
                 >
-                  Edit Account
+                  Edit {activeSubTab === 'account' ? 'Account' : activeSubTab === 'settings' ? 'Settings' : 'Hours'}
                 </button>
               )}
             </>
