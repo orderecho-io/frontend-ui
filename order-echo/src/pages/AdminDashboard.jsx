@@ -19,6 +19,7 @@ import {
 import AdminStatsCards from '../components/admin/AdminStatsCards';
 import AdminDataTable from '../components/admin/AdminDataTable';
 import AdminFilters from '../components/admin/AdminFilters';
+import UserDetailsModal from '../components/admin/UserDetailsModal';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -76,6 +77,8 @@ const AdminDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         setStats(data);
+      } else {
+        console.error('Failed to fetch stats:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -118,6 +121,8 @@ const AdminDashboard = () => {
           endpoint = `/api/admin/${type}?${params}`;
       }
       
+      console.log(`Fetching ${type} from:`, endpoint);
+      
       const response = await fetch(endpoint, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -127,6 +132,7 @@ const AdminDashboard = () => {
       
       if (response.ok) {
         const data = await response.json();
+        console.log(`${type} data received:`, data);
         
         switch (type) {
           case 'users':
@@ -145,6 +151,10 @@ const AdminDashboard = () => {
             setCalls(data);
             break;
         }
+      } else {
+        console.error(`Failed to fetch ${type}:`, response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
       }
     } catch (error) {
       console.error(`Error fetching ${type}:`, error);
@@ -441,9 +451,9 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Account Details Modal */}
+        {/* User Details Modal */}
         {showAccountModal && (
-          <AccountDetailsModal
+          <UserDetailsModal
             user={selectedUser}
             accountDetails={accountDetails}
             onClose={() => {
@@ -454,478 +464,6 @@ const AdminDashboard = () => {
             onUpdate={handleUpdate}
           />
         )}
-      </div>
-    </div>
-  );
-};
-
-// Enhanced Account Details Modal Component
-const AccountDetailsModal = ({ user, accountDetails, onClose, onUpdate }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedAccount, setEditedAccount] = useState({});
-  const [editedSettings, setEditedSettings] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [activeSubTab, setActiveSubTab] = useState('account');
-
-  useEffect(() => {
-    if (accountDetails?.user) {
-      setEditedAccount(accountDetails.user);
-    }
-    if (accountDetails?.settings) {
-      const settingsObj = {};
-      accountDetails.settings.forEach(setting => {
-        const key = setting.key.split('_').slice(1).join('_'); // Remove account_id prefix
-        settingsObj[key] = setting.value;
-      });
-      setEditedSettings(settingsObj);
-    }
-  }, [accountDetails]);
-
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      if (activeSubTab === 'account' && accountDetails?.user?.account_id) {
-        // Update account information
-        await fetch(`/api/admin/accounts/${accountDetails.user.account_id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(editedAccount)
-        });
-      } else if (activeSubTab === 'settings') {
-        // Update settings
-        for (const [key, value] of Object.entries(editedSettings)) {
-          await fetch(`/api/admin/accounts/${accountDetails.user.account_id}/settings/${key}`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ value })
-          });
-        }
-      }
-      
-      setIsEditing(false);
-      alert('Update successful!');
-      onClose(); // Refresh the parent data
-    } catch (error) {
-      console.error('Failed to update:', error);
-      alert('Failed to update');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCancel = () => {
-    if (accountDetails?.user) {
-      setEditedAccount(accountDetails.user);
-    }
-    if (accountDetails?.settings) {
-      const settingsObj = {};
-      accountDetails.settings.forEach(setting => {
-        const key = setting.key.split('_').slice(1).join('_');
-        settingsObj[key] = setting.value;
-      });
-      setEditedSettings(settingsObj);
-    }
-    setIsEditing(false);
-  };
-
-  if (!accountDetails && loading) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading user details...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const subTabs = [
-    { id: 'account', label: 'Account Info' },
-    { id: 'settings', label: 'Settings' },
-    { id: 'hours', label: 'Working Hours' }
-  ];
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-auto">
-        <div className="flex justify-between items-center p-6 border-b">
-          <h2 className="text-2xl font-bold text-gray-900">
-            {accountDetails?.user ? 'User & Account Details' : 'User Profile - No Account'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-6 w-6" />
-          </button>
-        </div>
-
-        {/* Sub-tabs */}
-        {accountDetails?.user?.account_id && (
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
-              {subTabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveSubTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeSubTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        )}
-
-        <div className="p-6">
-          {accountDetails?.error ? (
-            <div className="text-center py-8">
-              <h3 className="text-lg font-medium text-red-900 mb-2">Error Loading User Details</h3>
-              <p className="text-red-600 mb-4">{accountDetails.error}</p>
-            </div>
-          ) : accountDetails?.user ? (
-            <>
-              {/* Account Information Tab */}
-              {activeSubTab === 'account' && (
-                <div className="grid grid-cols-2 gap-6">
-                  {/* User Information */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-4">User Information</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">First Name</label>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editedAccount.first_name || ''}
-                            onChange={(e) => setEditedAccount({...editedAccount, first_name: e.target.value})}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                          />
-                        ) : (
-                          <p className="mt-1 text-sm text-gray-900">{accountDetails.user.first_name}</p>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editedAccount.last_name || ''}
-                            onChange={(e) => setEditedAccount({...editedAccount, last_name: e.target.value})}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                          />
-                        ) : (
-                          <p className="mt-1 text-sm text-gray-900">{accountDetails.user.last_name}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Email</label>
-                        <p className="mt-1 text-sm text-gray-900">{accountDetails.user.email}</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Phone</label>
-                        {isEditing ? (
-                          <input
-                            type="text"
-                            value={editedAccount.phone || ''}
-                            onChange={(e) => setEditedAccount({...editedAccount, phone: e.target.value})}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                          />
-                        ) : (
-                          <p className="mt-1 text-sm text-gray-900">{accountDetails.user.phone}</p>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Role</label>
-                        {isEditing ? (
-                          <select
-                            value={editedAccount.role || ''}
-                            onChange={(e) => setEditedAccount({...editedAccount, role: e.target.value})}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                          >
-                            <option value="user">User</option>
-                            <option value="admin">Admin</option>
-                            <option value="super_admin">Super Admin</option>
-                          </select>
-                        ) : (
-                          <p className="mt-1 text-sm text-gray-900">{accountDetails.user.role}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Restaurant Information */}
-                  {accountDetails.user.account_id && (
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4">Restaurant Information</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Restaurant Name</label>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              value={editedAccount.restaurant_name || ''}
-                              onChange={(e) => setEditedAccount({...editedAccount, restaurant_name: e.target.value})}
-                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                            />
-                          ) : (
-                            <p className="mt-1 text-sm text-gray-900">{accountDetails.user.restaurant_name}</p>
-                          )}
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Restaurant Phone</label>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              value={editedAccount.restaurant_phone || ''}
-                              onChange={(e) => setEditedAccount({...editedAccount, restaurant_phone: e.target.value})}
-                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                            />
-                          ) : (
-                            <p className="mt-1 text-sm text-gray-900">{accountDetails.user.restaurant_phone}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Address</label>
-                          {isEditing ? (
-                            <textarea
-                              value={editedAccount.address || ''}
-                              onChange={(e) => setEditedAccount({...editedAccount, address: e.target.value})}
-                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                              rows={2}
-                            />
-                          ) : (
-                            <p className="mt-1 text-sm text-gray-900">{accountDetails.user.address}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Cuisine Type</label>
-                          {isEditing ? (
-                            <select
-                              value={editedAccount.cuisine_type || ''}
-                              onChange={(e) => setEditedAccount({...editedAccount, cuisine_type: e.target.value})}
-                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                            >
-                              <option value="">Select cuisine type</option>
-                              <option value="american">American</option>
-                              <option value="italian">Italian</option>
-                              <option value="chinese">Chinese</option>
-                              <option value="mexican">Mexican</option>
-                              <option value="indian">Indian</option>
-                              <option value="japanese">Japanese</option>
-                              <option value="thai">Thai</option>
-                              <option value="mediterranean">Mediterranean</option>
-                              <option value="french">French</option>
-                              <option value="pizza">Pizza</option>
-                              <option value="burger">Burger</option>
-                              <option value="seafood">Seafood</option>
-                              <option value="other">Other</option>
-                            </select>
-                          ) : (
-                            <p className="mt-1 text-sm text-gray-900">{accountDetails.user.cuisine_type}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Subscription Plan</label>
-                          {isEditing ? (
-                            <select
-                              value={editedAccount.subscription_plan || ''}
-                              onChange={(e) => setEditedAccount({...editedAccount, subscription_plan: e.target.value})}
-                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                            >
-                              <option value="free">Free</option>
-                              <option value="basic">Basic</option>
-                              <option value="premium">Premium</option>
-                              <option value="enterprise">Enterprise</option>
-                            </select>
-                          ) : (
-                            <p className="mt-1 text-sm text-gray-900">{accountDetails.user.subscription_plan}</p>
-                          )}
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700">Subscription Status</label>
-                          {isEditing ? (
-                            <select
-                              value={editedAccount.subscription_status || ''}
-                              onChange={(e) => setEditedAccount({...editedAccount, subscription_status: e.target.value})}
-                              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                            >
-                              <option value="active">Active</option>
-                              <option value="inactive">Inactive</option>
-                              <option value="trial">Trial</option>
-                              <option value="expired">Expired</option>
-                              <option value="cancelled">Cancelled</option>
-                            </select>
-                          ) : (
-                            <p className="mt-1 text-sm text-gray-900">
-                              <span className={`px-2 py-1 text-xs rounded-full ${
-                                accountDetails.user.subscription_status === 'active' 
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {accountDetails.user.subscription_status}
-                              </span>
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Settings Tab */}
-              {activeSubTab === 'settings' && accountDetails.settings && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Account Settings</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    {accountDetails.settings.map((setting) => {
-                      const key = setting.key.split('_').slice(1).join('_');
-                      return (
-                        <div key={setting.id}>
-                          <label className="block text-sm font-medium text-gray-700">
-                            {setting.description || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                          </label>
-                          {isEditing ? (
-                            setting.data_type === 'boolean' ? (
-                              <select
-                                value={editedSettings[key] || ''}
-                                onChange={(e) => setEditedSettings({...editedSettings, [key]: e.target.value})}
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                              >
-                                <option value="true">True</option>
-                                <option value="false">False</option>
-                              </select>
-                            ) : (
-                              <input
-                                type={setting.data_type === 'number' ? 'number' : 'text'}
-                                value={editedSettings[key] || ''}
-                                onChange={(e) => setEditedSettings({...editedSettings, [key]: e.target.value})}
-                                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-                              />
-                            )
-                          ) : (
-                            <p className="mt-1 text-sm text-gray-900">{setting.value}</p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Working Hours Tab */}
-              {activeSubTab === 'hours' && accountDetails.working_hours && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4">Working Hours</h3>
-                  <div className="space-y-4">
-                    {accountDetails.working_hours.map((hours) => (
-                      <div key={hours.id} className="flex items-center space-x-4 p-4 border rounded-lg">
-                        <div className="w-24">
-                          <span className="font-medium">{hours.day_of_week}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={hours.is_open}
-                            readOnly={!isEditing}
-                            className="rounded"
-                          />
-                          <span className="text-sm">Open</span>
-                        </div>
-                        {hours.is_open && (
-                          <>
-                            <div>
-                              <input
-                                type="time"
-                                value={hours.open_time || ''}
-                                readOnly={!isEditing}
-                                className="px-3 py-1 border border-gray-300 rounded-md"
-                              />
-                            </div>
-                            <span>to</span>
-                            <div>
-                              <input
-                                type="time"
-                                value={hours.close_time || ''}
-                                readOnly={!isEditing}
-                                className="px-3 py-1 border border-gray-300 rounded-md"
-                              />
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-8">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Account Found</h3>
-              <p className="text-gray-600">This user does not have an associated restaurant account.</p>
-            </div>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            Close
-          </button>
-          
-          {accountDetails?.user && (
-            <>
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleCancel}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                    disabled={loading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
-                    disabled={loading}
-                  >
-                    {loading ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
-                >
-                  Edit {activeSubTab === 'account' ? 'Account' : activeSubTab === 'settings' ? 'Settings' : 'Hours'}
-                </button>
-              )}
-            </>
-          )}
-        </div>
       </div>
     </div>
   );

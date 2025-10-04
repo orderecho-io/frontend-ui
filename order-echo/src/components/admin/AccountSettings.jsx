@@ -1,292 +1,201 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, ToggleLeft, ToggleRight, Save, X } from 'lucide-react';
+import React from 'react';
 
-const AccountSettings = ({ accountId, onDataLoaded }) => {
-  const [accountSettings, setAccountSettings] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [editing, setEditing] = useState(false);
-  const [editedSettings, setEditedSettings] = useState({});
-
-  useEffect(() => {
-    fetchAccountSettings();
-  }, [accountId]);
-
-  const fetchAccountSettings = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`/api/admin/account-settings/${accountId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setAccountSettings(data);
-        setEditedSettings(data || {});
-        onDataLoaded && onDataLoaded(data ? 1 : 0);
-      } else {
-        throw new Error('Failed to fetch account settings');
-      }
-      
-    } catch (error) {
-      console.error('Error fetching account settings:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveSettings = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      const response = await fetch(`/api/admin/account-settings/${accountId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(editedSettings)
-      });
-
-      if (response.ok) {
-        setAccountSettings(editedSettings);
-        setEditing(false);
-      } else {
-        throw new Error('Failed to update settings');
-      }
-      
-    } catch (error) {
-      console.error('Failed to update settings:', error);
-      alert('Failed to update settings');
-    }
-  };
-
-  const handleCancel = () => {
-    setEditedSettings(accountSettings || {});
-    setEditing(false);
-  };
-
-  const handleToggle = (field) => {
-    setEditedSettings(prev => ({
-      ...prev,
-      [field]: !prev[field]
-    }));
-  };
-
-  if (loading) {
+const AccountSettings = ({ accountDetails, isEditing, editedSettings, setEditedSettings }) => {
+  if (!accountDetails?.settings || accountDetails.settings.length === 0) {
     return (
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
-            <Settings className="h-5 w-5 mr-2" />
-            Account Settings
-          </h3>
-        </div>
-        <div className="p-6">
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-3 text-gray-600">Loading settings...</span>
-          </div>
-        </div>
+      <div className="text-center py-8">
+        <h3 className="text-lg font-medium text-gray-900 mb-2">No Settings Found</h3>
+        <p className="text-gray-600">No account settings are configured for this user.</p>
       </div>
     );
   }
 
-  if (error) {
-    return (
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
-            <Settings className="h-5 w-5 mr-2" />
-            Account Settings
-          </h3>
-        </div>
-        <div className="p-6">
-          <div className="text-center py-8">
-            <p className="text-red-600 mb-4">Error loading settings: {error}</p>
-            <button
-              onClick={fetchAccountSettings}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const formatSettingKey = (key) => {
+    // Remove account_id prefix and format nicely
+    const cleanKey = key.split('_').slice(1).join('_');
+    return cleanKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const renderSettingValue = (setting, key) => {
+    if (isEditing) {
+      if (setting.data_type === 'boolean') {
+        return (
+          <select
+            value={editedSettings[key] || setting.value}
+            onChange={(e) => setEditedSettings({...editedSettings, [key]: e.target.value})}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="true">True</option>
+            <option value="false">False</option>
+          </select>
+        );
+      } else if (setting.data_type === 'number') {
+        return (
+          <input
+            type="number"
+            value={editedSettings[key] || setting.value}
+            onChange={(e) => setEditedSettings({...editedSettings, [key]: e.target.value})}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        );
+      } else if (key === 'currency') {
+        return (
+          <select
+            value={editedSettings[key] || setting.value}
+            onChange={(e) => setEditedSettings({...editedSettings, [key]: e.target.value})}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="USD">USD - US Dollar</option>
+            <option value="CAD">CAD - Canadian Dollar</option>
+            <option value="EUR">EUR - Euro</option>
+            <option value="GBP">GBP - British Pound</option>
+            <option value="JPY">JPY - Japanese Yen</option>
+          </select>
+        );
+      } else if (key === 'timezone') {
+        return (
+          <select
+            value={editedSettings[key] || setting.value}
+            onChange={(e) => setEditedSettings({...editedSettings, [key]: e.target.value})}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="America/New_York">Eastern Time</option>
+            <option value="America/Chicago">Central Time</option>
+            <option value="America/Denver">Mountain Time</option>
+            <option value="America/Los_Angeles">Pacific Time</option>
+            <option value="America/Toronto">Toronto</option>
+            <option value="America/Vancouver">Vancouver</option>
+            <option value="UTC">UTC</option>
+          </select>
+        );
+      } else {
+        return (
+          <input
+            type="text"
+            value={editedSettings[key] || setting.value}
+            onChange={(e) => setEditedSettings({...editedSettings, [key]: e.target.value})}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+        );
+      }
+    } else {
+      // Display mode
+      if (setting.data_type === 'boolean') {
+        return (
+          <span className={`px-2 py-1 text-xs rounded-full ${
+            setting.value === 'true' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {setting.value === 'true' ? 'Enabled' : 'Disabled'}
+          </span>
+        );
+      } else if (setting.data_type === 'number' && key.includes('amount')) {
+        return `$${parseFloat(setting.value).toFixed(2)}`;
+      } else {
+        return setting.value;
+      }
+    }
+  };
 
   return (
-    <div className="bg-white shadow rounded-lg">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-gray-900 flex items-center">
-            <Settings className="h-5 w-5 mr-2" />
-            Account Settings
-          </h3>
-          
-          {!editing ? (
-            <button
-              onClick={() => setEditing(true)}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
-            >
-              Edit Settings
-            </button>
-          ) : (
-            <div className="flex space-x-2">
-              <button
-                onClick={handleCancel}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                <X className="h-4 w-4 inline mr-2" />
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveSettings}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
-              >
-                <Save className="h-4 w-4 inline mr-2" />
-                Save Changes
-              </button>
+    <div>
+      <h3 className="text-lg font-semibold mb-4">Account Settings</h3>
+      <div className="grid grid-cols-2 gap-4">
+        {accountDetails.settings.map((setting) => {
+          const key = setting.key.split('_').slice(1).join('_');
+          return (
+            <div key={setting.id} className="p-4 border rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {setting.description || formatSettingKey(setting.key)}
+              </label>
+              <div className="mb-2">
+                {renderSettingValue(setting, key)}
+              </div>
+              <div className="text-xs text-gray-500">
+                Type: {setting.data_type} | Key: {key}
+              </div>
+              {setting.description && (
+                <div className="text-xs text-gray-600 mt-1">
+                  {setting.description}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          );
+        })}
       </div>
-      
-      <div className="p-6">
-        {!accountSettings ? (
-          <div className="text-center py-8">
-            <Settings className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Settings Configured</h3>
-            <p className="text-gray-600 mb-4">This account doesn't have any custom settings configured.</p>
-            {!editing && (
-              <button
-                onClick={() => setEditing(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+
+      {/* Quick Settings Section */}
+      <div className="mt-8">
+        <h4 className="text-md font-semibold mb-4">Quick Settings</h4>
+        <div className="grid grid-cols-3 gap-4">
+          {/* AI Voice Toggle */}
+          <div className="p-4 bg-blue-50 rounded-lg">
+            <h5 className="font-medium text-blue-900">AI Voice Agent</h5>
+            <p className="text-sm text-blue-700 mb-2">Enable voice ordering</p>
+            {isEditing ? (
+              <select
+                value={editedSettings['ai_voice_enabled'] || 'true'}
+                onChange={(e) => setEditedSettings({...editedSettings, ai_voice_enabled: e.target.value})}
+                className="w-full px-2 py-1 border rounded text-sm"
               >
-                Configure Settings
-              </button>
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+              </select>
+            ) : (
+              <span className={`px-2 py-1 text-xs rounded-full ${
+                accountDetails.settings.find(s => s.key.includes('ai_voice_enabled'))?.value === 'true' 
+                  ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              }`}>
+                {accountDetails.settings.find(s => s.key.includes('ai_voice_enabled'))?.value === 'true' ? 'On' : 'Off'}
+              </span>
             )}
           </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Auto Order Processing */}
-            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-              <div className="flex-1">
-                <h4 className="text-sm font-medium text-gray-900">Auto Order Processing</h4>
-                <p className="text-sm text-gray-600 mt-1">
-                  Automatically process orders when received via phone calls
-                </p>
-              </div>
-              <div className="ml-4">
-                {editing ? (
-                  <button
-                    onClick={() => handleToggle('auto_order_processing')}
-                    className="flex items-center"
-                  >
-                    {editedSettings.auto_order_processing ? (
-                      <ToggleRight className="h-6 w-6 text-blue-600" />
-                    ) : (
-                      <ToggleLeft className="h-6 w-6 text-gray-400" />
-                    )}
-                  </button>
-                ) : (
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                    accountSettings.auto_order_processing 
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {accountSettings.auto_order_processing ? 'Enabled' : 'Disabled'}
-                  </span>
-                )}
-              </div>
-            </div>
 
-            {/* Business Hours Support */}
-            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-              <div className="flex-1">
-                <h4 className="text-sm font-medium text-gray-900">Business Hours Support</h4>
-                <p className="text-sm text-gray-600 mt-1">
-                  Only accept orders during business hours
-                </p>
-              </div>
-              <div className="ml-4">
-                {editing ? (
-                  <button
-                    onClick={() => handleToggle('business_hours_support')}
-                    className="flex items-center"
-                  >
-                    {editedSettings.business_hours_support ? (
-                      <ToggleRight className="h-6 w-6 text-blue-600" />
-                    ) : (
-                      <ToggleLeft className="h-6 w-6 text-gray-400" />
-                    )}
-                  </button>
-                ) : (
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                    accountSettings.business_hours_support 
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {accountSettings.business_hours_support ? 'Enabled' : 'Disabled'}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Voice Assistant */}
-            <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-              <div className="flex-1">
-                <h4 className="text-sm font-medium text-gray-900">Voice Assistant</h4>
-                <p className="text-sm text-gray-600 mt-1">
-                  Enable AI voice assistant for order taking
-                </p>
-              </div>
-              <div className="ml-4">
-                {editing ? (
-                  <button
-                    onClick={() => handleToggle('voice_assistant_enabled')}
-                    className="flex items-center"
-                  >
-                    {editedSettings.voice_assistant_enabled ? (
-                      <ToggleRight className="h-6 w-6 text-blue-600" />
-                    ) : (
-                      <ToggleLeft className="h-6 w-6 text-gray-400" />
-                    )}
-                  </button>
-                ) : (
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                    accountSettings.voice_assistant_enabled 
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {accountSettings.voice_assistant_enabled ? 'Enabled' : 'Disabled'}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Additional Settings */}
-            <div className="pt-4 border-t border-gray-200">
-              <h4 className="text-sm font-medium text-gray-900 mb-3">Additional Information</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                <div>
-                  <span className="font-medium">Created:</span> {accountSettings.created_at ? new Date(accountSettings.created_at).toLocaleDateString() : 'N/A'}
-                </div>
-                <div>
-                  <span className="font-medium">Last Updated:</span> {accountSettings.updated_at ? new Date(accountSettings.updated_at).toLocaleDateString() : 'N/A'}
-                </div>
-              </div>
-            </div>
+          {/* Order Confirmation */}
+          <div className="p-4 bg-green-50 rounded-lg">
+            <h5 className="font-medium text-green-900">Order Confirmation</h5>
+            <p className="text-sm text-green-700 mb-2">Require order confirmation</p>
+            {isEditing ? (
+              <select
+                value={editedSettings['order_confirmation_required'] || 'true'}
+                onChange={(e) => setEditedSettings({...editedSettings, order_confirmation_required: e.target.value})}
+                className="w-full px-2 py-1 border rounded text-sm"
+              >
+                <option value="true">Required</option>
+                <option value="false">Optional</option>
+              </select>
+            ) : (
+              <span className={`px-2 py-1 text-xs rounded-full ${
+                accountDetails.settings.find(s => s.key.includes('order_confirmation_required'))?.value === 'true' 
+                  ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+              }`}>
+                {accountDetails.settings.find(s => s.key.includes('order_confirmation_required'))?.value === 'true' ? 'Required' : 'Optional'}
+              </span>
+            )}
           </div>
-        )}
+
+          {/* Auto Print */}
+          <div className="p-4 bg-purple-50 rounded-lg">
+            <h5 className="font-medium text-purple-900">Auto Print Orders</h5>
+            <p className="text-sm text-purple-700 mb-2">Print orders automatically</p>
+            {isEditing ? (
+              <select
+                value={editedSettings['auto_print_orders'] || 'false'}
+                onChange={(e) => setEditedSettings({...editedSettings, auto_print_orders: e.target.value})}
+                className="w-full px-2 py-1 border rounded text-sm"
+              >
+                <option value="true">Enabled</option>
+                <option value="false">Disabled</option>
+              </select>
+            ) : (
+              <span className={`px-2 py-1 text-xs rounded-full ${
+                accountDetails.settings.find(s => s.key.includes('auto_print_orders'))?.value === 'true' 
+                  ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+              }`}>
+                {accountDetails.settings.find(s => s.key.includes('auto_print_orders'))?.value === 'true' ? 'On' : 'Off'}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
