@@ -11,13 +11,21 @@ import {
   Edit,
   Save,
   X,
-  Activity
+  Activity,
+  Clock,
+  Database,
+  PhoneOff
 } from 'lucide-react';
 
 // Import subtab components
 import AccountOrders from '../components/admin/AccountOrders';
 import AccountCalls from '../components/admin/AccountCalls';
 import AccountSettings from '../components/admin/AccountSettings';
+import OperatingHours from '../components/admin/OperatingHours';
+import CallHistory from '../components/admin/CallHistory';
+import Orders from '../components/admin/Orders';
+import TableConfiguration from '../components/admin/TableConfiguration';
+import AbandonedCallHistory from '../components/admin/AbandonedCallHistory';
 
 const AccountDetail = () => {
   const { accountId } = useParams();
@@ -26,14 +34,20 @@ const AccountDetail = () => {
   // State management
   const [accountDetails, setAccountDetails] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeSubTab, setActiveSubTab] = useState('orders');
+  const [activeSubTab, setActiveSubTab] = useState('account');
   const [editing, setEditing] = useState(false);
   const [editedData, setEditedData] = useState({});
+  
+  // Individual component editing states
+  const [componentEditing, setComponentEditing] = useState({});
   
   // Data for different subtabs (now handled by individual components)
   const [ordersCount, setOrdersCount] = useState(0);
   const [callsCount, setCallsCount] = useState(0);
   const [settingsCount, setSettingsCount] = useState(0);
+  const [operatingHoursCount, setOperatingHoursCount] = useState(0);
+  const [tableConfigCount, setTableConfigCount] = useState(0);
+  const [abandonedCallsCount, setAbandonedCallsCount] = useState(0);
 
   useEffect(() => {
     fetchAccountDetails();
@@ -107,6 +121,10 @@ const AccountDetail = () => {
 
   const handleInputChange = (field, value) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleComponentEditToggle = (componentName, isEditing) => {
+    setComponentEditing(prev => ({ ...prev, [componentName]: isEditing }));
   };
 
   const formatCurrency = (amount) => {
@@ -356,18 +374,22 @@ const AccountDetail = () => {
       {/* Subtabs */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
+          <nav className="-mb-px flex space-x-8 overflow-x-auto">
             {[
+              { id: 'account', label: 'Account Details', icon: Store, count: null },
+              { id: 'account_settings', label: 'Account Settings', icon: Settings, count: settingsCount },
+              { id: 'operating_hours', label: 'Operating Hours', icon: Clock, count: operatingHoursCount },
+              { id: 'call_history', label: 'Call History', icon: Activity, count: callsCount },
               { id: 'orders', label: 'Orders', icon: ShoppingCart, count: ordersCount },
-              { id: 'calls', label: 'Call History', icon: Activity, count: callsCount },
-              { id: 'settings', label: 'Settings', icon: Settings, count: settingsCount }
+              { id: 'table_configuration', label: 'Table Config', icon: Database, count: tableConfigCount },
+              { id: 'abandoned_call_history', label: 'Abandoned Calls', icon: PhoneOff, count: abandonedCallsCount }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveSubTab(tab.id)}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 whitespace-nowrap ${
                     activeSubTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -375,9 +397,11 @@ const AccountDetail = () => {
                 >
                   <Icon className="h-4 w-4" />
                   <span>{tab.label}</span>
-                  <span className="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
-                    {tab.count}
-                  </span>
+                  {tab.count !== null && (
+                    <span className="bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
+                      {tab.count}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -386,24 +410,63 @@ const AccountDetail = () => {
 
         {/* Subtab Content */}
         <div className="mt-8">
-          {activeSubTab === 'orders' && (
-            <AccountOrders 
-              accountId={accountId} 
-              onDataLoaded={(count) => setOrdersCount(count)}
-            />
+          {activeSubTab === 'account' && (
+            <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Overview</h3>
+              <p className="text-gray-600">This is the main account details view. All account information is displayed above in the header section.</p>
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  <strong>Navigation:</strong> Use the tabs above to view and manage different aspects of this account including settings, operating hours, call history, orders, and more.
+                </p>
+              </div>
+            </div>
           )}
 
-          {activeSubTab === 'calls' && (
-            <AccountCalls 
-              accountId={accountId} 
-              onDataLoaded={(count) => setCallsCount(count)}
-            />
-          )}
-
-          {activeSubTab === 'settings' && (
+          {activeSubTab === 'account_settings' && (
             <AccountSettings 
-              accountId={accountId} 
-              onDataLoaded={(count) => setSettingsCount(count)}
+              accountId={accountId}
+              isEditing={componentEditing.account_settings || false}
+              onEditToggle={(isEditing) => handleComponentEditToggle('account_settings', isEditing)}
+            />
+          )}
+
+          {activeSubTab === 'operating_hours' && (
+            <OperatingHours 
+              accountId={accountId}
+              isEditing={componentEditing.operating_hours || false}
+              onEditToggle={(isEditing) => handleComponentEditToggle('operating_hours', isEditing)}
+            />
+          )}
+
+          {activeSubTab === 'call_history' && (
+            <CallHistory 
+              accountId={accountId}
+              isEditing={componentEditing.call_history || false}
+              onEditToggle={(isEditing) => handleComponentEditToggle('call_history', isEditing)}
+            />
+          )}
+
+          {activeSubTab === 'orders' && (
+            <Orders 
+              accountId={accountId}
+              isEditing={componentEditing.orders || false}
+              onEditToggle={(isEditing) => handleComponentEditToggle('orders', isEditing)}
+            />
+          )}
+
+          {activeSubTab === 'table_configuration' && (
+            <TableConfiguration 
+              accountId={accountId}
+              isEditing={componentEditing.table_configuration || false}
+              onEditToggle={(isEditing) => handleComponentEditToggle('table_configuration', isEditing)}
+            />
+          )}
+
+          {activeSubTab === 'abandoned_call_history' && (
+            <AbandonedCallHistory 
+              accountId={accountId}
+              isEditing={componentEditing.abandoned_call_history || false}
+              onEditToggle={(isEditing) => handleComponentEditToggle('abandoned_call_history', isEditing)}
             />
           )}
         </div>
