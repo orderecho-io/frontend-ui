@@ -136,8 +136,14 @@ const AdminDashboard = () => {
         
         switch (type) {
           case 'users':
-            // The new API returns accounts array with user info
-            setUsers(data.accounts || data);
+            // The new API returns direct array with user info, map id to user_id
+            const usersData = data.accounts || data;
+            const mappedUsers = usersData.map(user => ({
+              ...user,
+              user_id: user.id || user.user_id, // Map id to user_id for compatibility
+              user_created_at: user.created_at || user.user_created_at
+            }));
+            setUsers(mappedUsers);
             break;
           case 'accounts':
             // Filter for users that have accounts
@@ -331,40 +337,17 @@ const AdminDashboard = () => {
   };
 
   const handleUserClick = async (userId) => {
-    setSelectedUser(userId);
-    setLoading(true);
+    // Find the user data to get the account_id
+    const user = users.find(u => u.user_id === userId);
+    console.log('🔍 User data found:', user);
     
-    try {
-      const token = localStorage.getItem('token');
-      console.log('🔍 Debug: Fetching user details for:', userId);
-      
-      // Use the new detailed user endpoint
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('🔍 Debug: Response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ User details fetch failed:', errorText);
-        throw new Error(`Failed to fetch user details: ${response.status}`);
-      }
-      
-      const userDetails = await response.json();
-      console.log('✅ Received user details:', userDetails);
-      
-      setAccountDetails(userDetails);
-      setShowAccountModal(true);
-      
-    } catch (error) {
-      console.error('Error fetching user details:', error);
-      alert(`Failed to fetch user details: ${error.message}`);
-    } finally {
-      setLoading(false);
+    if (user && user.account_id) {
+      // Navigate to the account detail page with the account_id
+      console.log('🔍 Navigating to account details for account:', user.account_id);
+      navigate(`/admin/account/${user.account_id}`);
+    } else {
+      // User doesn't have an account, show message
+      alert('This user does not have an associated restaurant account.');
     }
   };
 
