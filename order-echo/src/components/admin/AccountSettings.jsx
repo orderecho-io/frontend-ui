@@ -174,6 +174,26 @@ const AccountSettings = ({ accountId, isEditing, onEditToggle }) => {
           <h4 className="text-md font-semibold">AI Configuration</h4>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Ultravox Agent ID
+              <span className="text-xs text-gray-500 ml-2">(UUID from Ultravox platform)</span>
+            </label>
+            {isEditing ? (
+              <input
+                type="text"
+                value={editedSettings.agent_id || ''}
+                onChange={(e) => setEditedSettings({...editedSettings, agent_id: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                placeholder="dcb81b9a-24e5-4eb3-a727-9e83562dacf9"
+              />
+            ) : (
+              <p className="text-gray-900 font-mono text-sm bg-gray-50 p-3 rounded-md">
+                {currentSettings.agent_id || 'dcb81b9a-24e5-4eb3-a727-9e83562dacf9'}
+              </p>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Agent Name</label>
             {isEditing ? (
