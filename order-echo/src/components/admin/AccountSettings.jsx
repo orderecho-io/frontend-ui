@@ -55,6 +55,8 @@ const AccountSettings = ({ accountId, isEditing, onEditToggle }) => {
         ? editedSettings
         : { ...editedSettings, account_id: accountId };
 
+      console.log('Saving account settings:', { method, url, body });
+      
       const response = await fetch(url, {
         method,
         headers: {
@@ -64,16 +66,28 @@ const AccountSettings = ({ accountId, isEditing, onEditToggle }) => {
         body: JSON.stringify(body)
       });
 
+      console.log('Response status:', response.status);
+      const responseData = await response.text();
+      console.log('Response data:', responseData);
+
       if (!response.ok) {
-        throw new Error('Failed to save account settings');
+        let errorMessage = 'Failed to save account settings';
+        try {
+          const errorJson = JSON.parse(responseData);
+          errorMessage = errorJson.detail || errorJson.message || errorMessage;
+        } catch (e) {
+          errorMessage = responseData || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       // Refresh data
       await fetchAccountSettings();
+      alert('Account settings saved successfully!');
       
     } catch (error) {
       console.error('Error saving account settings:', error);
-      alert('Failed to save account settings');
+      alert(`Failed to save account settings: ${error.message}`);
     }
   };
 
