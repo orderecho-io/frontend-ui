@@ -273,6 +273,83 @@ const AccountInfo = ({ accountDetails, isEditing, editedAccount, setEditedAccoun
                 <p className="mt-1 text-sm text-gray-900">{accountDetails.user.payment_method || 'Not set'}</p>
               )}
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Business Email</label>
+              {isEditing ? (
+                <input
+                  type="email"
+                  value={editedAccount.business_email || ''}
+                  onChange={(e) => setEditedAccount({...editedAccount, business_email: e.target.value})}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="restaurant@example.com"
+                />
+              ) : (
+                <p className="mt-1 text-sm text-gray-900">{accountDetails.user.business_email || 'Not set'}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Website URL</label>
+              {isEditing ? (
+                <input
+                  type="url"
+                  value={editedAccount.website_url || ''}
+                  onChange={(e) => setEditedAccount({...editedAccount, website_url: e.target.value})}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://restaurant.com"
+                />
+              ) : (
+                <p className="mt-1 text-sm text-gray-900">
+                  {accountDetails.user.website_url ? (
+                    <a href={accountDetails.user.website_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                      {accountDetails.user.website_url}
+                    </a>
+                  ) : 'Not set'}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Timezone</label>
+              {isEditing ? (
+                <select
+                  value={editedAccount.timezone || 'UTC'}
+                  onChange={(e) => setEditedAccount({...editedAccount, timezone: e.target.value})}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="UTC">UTC</option>
+                  <option value="America/New_York">Eastern Time (ET)</option>
+                  <option value="America/Chicago">Central Time (CT)</option>
+                  <option value="America/Denver">Mountain Time (MT)</option>
+                  <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                  <option value="America/Phoenix">Arizona (MST)</option>
+                  <option value="America/Anchorage">Alaska (AKT)</option>
+                  <option value="Pacific/Honolulu">Hawaii (HST)</option>
+                  <option value="America/Toronto">Toronto</option>
+                  <option value="America/Vancouver">Vancouver</option>
+                </select>
+              ) : (
+                <p className="mt-1 text-sm text-gray-900">{accountDetails.user.timezone || 'UTC'}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Billing Cycle</label>
+              {isEditing ? (
+                <select
+                  value={editedAccount.billing_cycle || 'monthly'}
+                  onChange={(e) => setEditedAccount({...editedAccount, billing_cycle: e.target.value})}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                  <option value="quarterly">Quarterly</option>
+                </select>
+              ) : (
+                <p className="mt-1 text-sm text-gray-900">{accountDetails.user.billing_cycle || 'Monthly'}</p>
+              )}
+            </div>
           </div>
         </div>
       )}
