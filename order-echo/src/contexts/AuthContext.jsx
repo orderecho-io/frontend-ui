@@ -108,8 +108,19 @@ export const AuthProvider = ({ children }) => {
       if (response.ok) {
         const userData = await response.json();
         // Update user data if it's different from token payload
-        setUser(userData.user);
-        setIsAuthenticated(true);
+        if (userData && userData.user) {
+          console.log('Token verified, updating user data:', userData.user);
+          setUser({
+            id: userData.user.user_id || userData.user.id,
+            user_id: userData.user.user_id || userData.user.id,
+            email: userData.user.email,
+            firstName: userData.user.firstName,
+            lastName: userData.user.lastName,
+            role: userData.user.role || 'user',
+            is_active: userData.user.is_active !== undefined ? userData.user.is_active : true
+          });
+          setIsAuthenticated(true);
+        }
       } else {
         // Token is invalid, remove it
         localStorage.removeItem('token');
