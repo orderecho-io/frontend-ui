@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Edit, Save, X, Bot, Mic, Globe, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
 
 const AccountSettings = ({ accountId, isEditing, onEditToggle }) => {
   const [accountSettings, setAccountSettings] = useState(null);
@@ -90,11 +91,17 @@ const AccountSettings = ({ accountId, isEditing, onEditToggle }) => {
         onEditToggle(false);
       }
       
-      alert('Account settings saved successfully!');
+      toast.success('Account settings saved successfully!', {
+        description: 'All changes have been saved to the database.',
+        duration: 3000
+      });
       
     } catch (error) {
       console.error('Error saving account settings:', error);
-      alert(`Failed to save account settings: ${error.message}`);
+      toast.error('Failed to save account settings', {
+        description: error.message,
+        duration: 5000
+      });
     }
   };
 
