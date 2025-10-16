@@ -32,6 +32,7 @@ const AccountSettings = ({ accountId, isEditing, onEditToggle }) => {
       }
 
       const data = await response.json();
+      console.log('Fetched account settings:', data);
       setAccountSettings(data);
       setEditedSettings(data);
       
@@ -83,6 +84,12 @@ const AccountSettings = ({ accountId, isEditing, onEditToggle }) => {
 
       // Refresh data
       await fetchAccountSettings();
+      
+      // Exit edit mode after successful save
+      if (onEditToggle) {
+        onEditToggle(false);
+      }
+      
       alert('Account settings saved successfully!');
       
     } catch (error) {
