@@ -206,14 +206,14 @@ const AddAccount = ({ onClose, onSuccess }) => {
       // Step 1: Create user and account
       console.log('Step 1: Creating user and account...');
       const signupPayload = {
+        // Backend expects camelCase for user fields
+        firstName: formData.first_name,
+        lastName: formData.last_name,
         email: formData.email,
         password: formData.password,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        phone: formData.phone ? formatPhoneE164(formData.phone) : undefined,
-        role: formData.role,
+        phone: formData.phone ? formatPhoneE164(formData.phone) : formatPhoneE164(formData.business_phone), // Use business phone if user phone not provided
+        // Backend expects snake_case for restaurant fields
         restaurant_name: formData.restaurant_name,
-        phone_number: formatPhoneE164(formData.business_phone),
         address: formData.business_address,
         cuisine_type: formData.cuisine_type,
         restaurant_type: formData.restaurant_type
