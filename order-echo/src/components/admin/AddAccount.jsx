@@ -6,17 +6,8 @@ const AddAccount = ({ onClose, onSuccess }) => {
   const [step, setStep] = useState(1); // 1: User & Account, 2: Settings, 3: Operating Hours
   const [errors, setErrors] = useState({});
   
-  // Helper function to format phone to E.164
-  const formatPhoneE164 = (phone) => {
-    if (!phone) return '';
-    // Remove all non-digit characters
-    const digits = phone.replace(/\D/g, '');
-    // If it doesn't start with +, add it
-    if (!phone.startsWith('+')) {
-      return `+${digits}`;
-    }
-    return `+${digits}`;
-  };
+  // Note: Backend accepts phone numbers with or without + prefix
+  // Backend validator strips non-digits for validation, accepts 10-15 digits
 
   // Helper function to parse and display backend validation errors
   const handleBackendError = (errorData) => {
@@ -222,15 +213,15 @@ const AddAccount = ({ onClose, onSuccess }) => {
       // Step 1: Create user and account
       console.log('Step 1: Creating user and account...');
       
-      // Format phone number properly
-      const userPhone = formData.phone?.trim();
-      const businessPhone = formData.business_phone?.trim();
-      const formattedPhone = userPhone ? formatPhoneE164(userPhone) : formatPhoneE164(businessPhone);
+      // Use phone as-is (backend accepts with or without + prefix)
+      const userPhone = formData.phone?.trim() || '';
+      const businessPhone = formData.business_phone?.trim() || '';
+      const phoneToUse = userPhone || businessPhone;
       
-      console.log('Phone formatting:', {
+      console.log('Phone selection:', {
         userPhone,
         businessPhone,
-        formattedPhone
+        phoneToUse
       });
       
       const signupPayload = {
@@ -239,7 +230,7 @@ const AddAccount = ({ onClose, onSuccess }) => {
         lastName: formData.last_name,
         email: formData.email,
         password: formData.password,
-        phone: formattedPhone,
+        phone: phoneToUse,
         // Backend expects snake_case for restaurant fields
         restaurant_name: formData.restaurant_name,
         address: formData.business_address,
