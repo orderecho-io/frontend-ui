@@ -131,6 +131,22 @@ const AddAccount = ({ onClose, onSuccess }) => {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
+    } else {
+      // Match backend validation requirements
+      const hasUpperCase = /[A-Z]/.test(formData.password);
+      const hasLowerCase = /[a-z]/.test(formData.password);
+      const hasNumber = /\d/.test(formData.password);
+      const hasSpecialChar = /[^A-Za-z0-9]/.test(formData.password);
+      
+      if (!hasUpperCase) {
+        newErrors.password = 'Password must contain at least one uppercase letter';
+      } else if (!hasLowerCase) {
+        newErrors.password = 'Password must contain at least one lowercase letter';
+      } else if (!hasNumber) {
+        newErrors.password = 'Password must contain at least one number';
+      } else if (!hasSpecialChar) {
+        newErrors.password = 'Password must contain at least one special character (!@#$%^&*)';
+      }
     }
     
     // Restaurant validation
@@ -464,7 +480,11 @@ const AddAccount = ({ onClose, onSuccess }) => {
               onChange={(e) => handleInputChange('password', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               minLength={8}
+              placeholder="Must include: A-Z, a-z, 0-9, special char"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Min 8 chars with uppercase, lowercase, number, and special character
+            </p>
             {errors.password && (
               <p className="text-red-600 text-sm mt-1">{errors.password}</p>
             )}
