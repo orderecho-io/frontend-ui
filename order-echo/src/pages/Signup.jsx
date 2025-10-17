@@ -24,11 +24,6 @@ const signupSchema = z.object({
     .regex(/[0-9]/, 'Password must contain at least one number')
     .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
   confirmPassword: z.string(),
-  // Restaurant fields
-  restaurant_name: z.string().min(2, 'Restaurant name must be at least 2 characters'),
-  address: z.string().optional(),
-  cuisine_type: z.string().optional(),
-  restaurant_type: z.string().optional(),
   agreeToTerms: z.boolean().refine(val => val === true, 'You must agree to the terms and conditions'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -255,57 +250,6 @@ export default function Signup() {
                 {errors.confirmPassword && (
                   <p className="text-sm text-red-600">{errors.confirmPassword.message}</p>
                 )}
-              </div>
-
-              {/* Restaurant Information */}
-              <div className="space-y-2">
-                <Label htmlFor="restaurant_name">Restaurant Name *</Label>
-                <Input
-                  id="restaurant_name"
-                  placeholder="Your Restaurant Name"
-                  {...register('restaurant_name')}
-                />
-                {errors.restaurant_name && (
-                  <p className="text-sm text-red-600">{errors.restaurant_name.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address">Address (Optional)</Label>
-                <Input
-                  id="address"
-                  placeholder="123 Main St, City, State"
-                  {...register('address')}
-                />
-                {errors.address && (
-                  <p className="text-sm text-red-600">{errors.address.message}</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cuisine_type">Cuisine Type (Optional)</Label>
-                  <Input
-                    id="cuisine_type"
-                    placeholder="e.g., Italian, Chinese"
-                    {...register('cuisine_type')}
-                  />
-                  {errors.cuisine_type && (
-                    <p className="text-sm text-red-600">{errors.cuisine_type.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="restaurant_type">Restaurant Type (Optional)</Label>
-                  <Input
-                    id="restaurant_type"
-                    placeholder="e.g., Fine Dining, Casual"
-                    {...register('restaurant_type')}
-                  />
-                  {errors.restaurant_type && (
-                    <p className="text-sm text-red-600">{errors.restaurant_type.message}</p>
-                  )}
-                </div>
               </div>
 
               <div className="flex items-center space-x-2">
