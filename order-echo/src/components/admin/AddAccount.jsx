@@ -54,6 +54,7 @@ const AddAccount = ({ onClose, onSuccess }) => {
     email: '',
     phone: '',
     password: '',
+    confirm_password: '',
     role: 'user',
     
     // Account Info
@@ -138,6 +139,13 @@ const AddAccount = ({ onClose, onSuccess }) => {
       } else if (!hasSpecialChar) {
         newErrors.password = 'Password must contain at least one special character (!@#$%^&*)';
       }
+    }
+    
+    // Confirm password validation
+    if (!formData.confirm_password) {
+      newErrors.confirm_password = 'Please confirm your password';
+    } else if (formData.password !== formData.confirm_password) {
+      newErrors.confirm_password = 'Passwords do not match';
     }
     
     // Restaurant validation
@@ -490,6 +498,27 @@ const AddAccount = ({ onClose, onSuccess }) => {
             </p>
             {errors.password && (
               <p className="text-red-600 text-sm mt-1">{errors.password}</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
+            <input
+              type="password"
+              value={formData.confirm_password}
+              onChange={(e) => handleInputChange('confirm_password', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              placeholder="Re-enter your password"
+            />
+            {formData.confirm_password && formData.password === formData.confirm_password && (
+              <p className="text-green-600 text-sm mt-1 flex items-center">
+                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Passwords match
+              </p>
+            )}
+            {errors.confirm_password && (
+              <p className="text-red-600 text-sm mt-1">{errors.confirm_password}</p>
             )}
           </div>
           <div>
