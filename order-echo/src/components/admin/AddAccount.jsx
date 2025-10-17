@@ -75,44 +75,70 @@ const AddAccount = ({ onClose, onSuccess }) => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
+      console.log('Starting account creation...');
+      console.log('Form data:', formData);
+      
+      // Validate required fields
+      if (!formData.email || !formData.password || !formData.first_name || !formData.last_name || !formData.restaurant_name || !formData.business_phone) {
+        throw new Error('Please fill in all required fields (marked with *)');
+      }
+      
       // Step 1: Create user and account
+      console.log('Step 1: Creating user and account...');
+      const signupPayload = {
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        phone: formData.phone,
+        role: formData.role,
+        restaurant_name: formData.restaurant_name,
+        phone_number: formData.business_phone,
+        address: formData.business_address,
+        cuisine_type: formData.cuisine_type,
+        restaurant_type: formData.restaurant_type
+      };
+      
+      console.log('Signup payload:', signupPayload);
+      
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          phone: formData.phone,
-          role: formData.role,
-          restaurant_name: formData.restaurant_name,
-          phone_number: formData.business_phone,
-          address: formData.business_address,
-          cuisine_type: formData.cuisine_type,
-          restaurant_type: formData.restaurant_type
-        })
+        body: JSON.stringify(signupPayload)
       });
 
+      console.log('Signup response status:', response.status);
+      
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorText = await response.text();
+        console.error('Signup error response:', errorText);
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (e) {
+          throw new Error(errorText || 'Failed to create account');
+        }
         throw new Error(errorData.detail || errorData.message || 'Failed to create account');
       }
 
       const result = await response.json();
-      const accountId = result.user?.account_id;
+      console.log('Signup result:', result);
+      
+      const accountId = result.user?.account_id || result.account_id;
       
       if (!accountId) {
+        console.error('No account ID in response:', result);
         throw new Error('Account created but no account ID returned');
       }
 
-      console.log('Account created:', accountId);
+      console.log('✅ Account created with ID:', accountId);
 
       // Step 2: Update account with additional fields
-      await fetch(`/api/admin/accounts/${accountId}`, {
+      console.log('Step 2: Updating account with additional fields...');
+      const updateResponse = await fetch(`/api/admin/accounts/${accountId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -127,53 +153,82 @@ const AddAccount = ({ onClose, onSuccess }) => {
           billing_cycle: formData.billing_cycle
         })
       });
+      
+      if (!updateResponse.ok) {
+        console.warn('Failed to update account fields, but continuing...');
+      } else {
+        console.log('✅ Account fields updated');
+      }
 
       // Step 3: Create or update account settings
+      console.log('Step 3: Creating account settings...');
+      const settingsPayload = {
+        account_id: accountId,
+        agent_name: formData.agent_name,
+        agent_id: formData.agent_id,
+        ai_personality: formData.ai_personality,
+        greeting_message: formData.greeting_message || '',
+        system_prompt: formData.system_prompt || '',
+        temperature: parseFloat(formData.temperature),
+        max_duration: parseInt(formData.max_duration),
+        voice_id: formData.voice_id,
+        recording_enabled: formData.recording_enabled,
+        tax_rate: parseFloat(formData.tax_rate),
+        delivery_fee: parseFloat(formData.delivery_fee),
+        minimum_order_amount: parseFloat(formData.minimum_order_amount),
+        upsell_enabled: formData.upsell_enabled,
+        multi_language_enabled: formData.multi_language_enabled,
+        preferred_language: formData.preferred_language,
+        order_confirmation_required: formData.order_confirmation_required
+      };
+      
+      console.log('Settings payload:', settingsPayload);
+      
       const settingsResponse = await fetch('/api/admin/child-tables/account-settings', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          account_id: accountId,
-          agent_name: formData.agent_name,
-          agent_id: formData.agent_id,
-          ai_personality: formData.ai_personality,
-          greeting_message: formData.greeting_message,
-          system_prompt: formData.system_prompt,
-          temperature: parseFloat(formData.temperature),
-          max_duration: parseInt(formData.max_duration),
-          voice_id: formData.voice_id,
-          recording_enabled: formData.recording_enabled,
-          tax_rate: parseFloat(formData.tax_rate),
-          delivery_fee: parseFloat(formData.delivery_fee),
-          minimum_order_amount: parseFloat(formData.minimum_order_amount),
-          upsell_enabled: formData.upsell_enabled,
-          multi_language_enabled: formData.multi_language_enabled,
-          preferred_language: formData.preferred_language,
-          order_confirmation_required: formData.order_confirmation_required
-        })
+        body: JSON.stringify(settingsPayload)
       });
 
       if (!settingsResponse.ok) {
-        console.error('Failed to create account settings, but account was created');
+        const settingsError = await settingsResponse.text();
+        console.error('Failed to create account settings:', settingsError);
+        console.warn('Account was created but settings failed');
+      } else {
+        console.log('✅ Account settings created');
       }
 
       // Step 4: Create operating hours
+      console.log('Step 4: Creating operating hours...');
+      let hoursCreated = 0;
       for (const hours of formData.operating_hours) {
-        await fetch('/api/admin/child-tables/operating-hours', {
+        const hoursPayload = {
+          account_id: accountId,
+          ...hours
+        };
+        console.log(`Creating hours for day ${hours.day_of_week}:`, hoursPayload);
+        
+        const hoursResponse = await fetch('/api/admin/child-tables/operating-hours', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            account_id: accountId,
-            ...hours
-          })
+          body: JSON.stringify(hoursPayload)
         });
+        
+        if (hoursResponse.ok) {
+          hoursCreated++;
+        } else {
+          const errorText = await hoursResponse.text();
+          console.error(`Failed to create hours for day ${hours.day_of_week}:`, errorText);
+        }
       }
+      
+      console.log(`✅ Created ${hoursCreated}/${formData.operating_hours.length} operating hours`);
 
       toast.success('Account created successfully!', {
         description: `${formData.restaurant_name} has been added to the system.`,
@@ -188,6 +243,7 @@ const AddAccount = ({ onClose, onSuccess }) => {
       
     } catch (error) {
       console.error('Error creating account:', error);
+      console.error('Error stack:', error.stack);
       toast.error('Failed to create account', {
         description: error.message,
         duration: 5000
