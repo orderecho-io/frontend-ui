@@ -63,10 +63,6 @@ const AddAccount = ({ onClose, onSuccess }) => {
 
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors({ ...errors, [field]: null });
-    }
   };
 
   const validateStep1 = () => {
@@ -116,6 +112,9 @@ const AddAccount = ({ onClose, onSuccess }) => {
   };
 
   const handleNextStep = () => {
+    // Clear previous errors
+    setErrors({});
+    
     let isValid = false;
     
     if (step === 1) {
@@ -123,15 +122,11 @@ const AddAccount = ({ onClose, onSuccess }) => {
     } else if (step === 2) {
       isValid = validateStep2();
     } else {
-      isValid = true; // Step 3 has no required fields
+      isValid = true;
     }
     
     if (isValid) {
       setStep(step + 1);
-    } else {
-      toast.error('Please fix the errors before continuing', {
-        duration: 3000
-      });
     }
   };
 
@@ -339,13 +334,10 @@ const AddAccount = ({ onClose, onSuccess }) => {
               type="text"
               value={formData.first_name}
               onChange={(e) => handleInputChange('first_name', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                errors.first_name ? 'border-red-500' : 'border-gray-300'
-              }`}
-              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
             />
             {errors.first_name && (
-              <p className="text-red-500 text-xs mt-1">{errors.first_name}</p>
+              <p className="text-red-600 text-sm mt-1">{errors.first_name}</p>
             )}
           </div>
           <div>
@@ -354,13 +346,10 @@ const AddAccount = ({ onClose, onSuccess }) => {
               type="text"
               value={formData.last_name}
               onChange={(e) => handleInputChange('last_name', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                errors.last_name ? 'border-red-500' : 'border-gray-300'
-              }`}
-              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
             />
             {errors.last_name && (
-              <p className="text-red-500 text-xs mt-1">{errors.last_name}</p>
+              <p className="text-red-600 text-sm mt-1">{errors.last_name}</p>
             )}
           </div>
           <div>
@@ -369,13 +358,10 @@ const AddAccount = ({ onClose, onSuccess }) => {
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
-              }`}
-              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
             />
             {errors.email && (
-              <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+              <p className="text-red-600 text-sm mt-1">{errors.email}</p>
             )}
           </div>
           <div>
@@ -394,14 +380,11 @@ const AddAccount = ({ onClose, onSuccess }) => {
               type="password"
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                errors.password ? 'border-red-500' : 'border-gray-300'
-              }`}
-              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               minLength={8}
             />
             {errors.password && (
-              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+              <p className="text-red-600 text-sm mt-1">{errors.password}</p>
             )}
           </div>
           <div>
@@ -432,13 +415,10 @@ const AddAccount = ({ onClose, onSuccess }) => {
               type="text"
               value={formData.restaurant_name}
               onChange={(e) => handleInputChange('restaurant_name', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                errors.restaurant_name ? 'border-red-500' : 'border-gray-300'
-              }`}
-              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
             />
             {errors.restaurant_name && (
-              <p className="text-red-500 text-xs mt-1">{errors.restaurant_name}</p>
+              <p className="text-red-600 text-sm mt-1">{errors.restaurant_name}</p>
             )}
           </div>
           <div>
@@ -447,14 +427,11 @@ const AddAccount = ({ onClose, onSuccess }) => {
               type="tel"
               value={formData.business_phone}
               onChange={(e) => handleInputChange('business_phone', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
-                errors.business_phone ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               placeholder="+1234567890"
-              required
             />
             {errors.business_phone && (
-              <p className="text-red-500 text-xs mt-1">{errors.business_phone}</p>
+              <p className="text-red-600 text-sm mt-1">{errors.business_phone}</p>
             )}
           </div>
           <div>
@@ -608,6 +585,9 @@ const AddAccount = ({ onClose, onSuccess }) => {
             onChange={(e) => handleInputChange('temperature', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
+          {errors.temperature && (
+            <p className="text-red-600 text-sm mt-1">{errors.temperature}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Max Duration (seconds)</label>
@@ -629,6 +609,9 @@ const AddAccount = ({ onClose, onSuccess }) => {
             onChange={(e) => handleInputChange('tax_rate', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
+          {errors.tax_rate && (
+            <p className="text-red-600 text-sm mt-1">{errors.tax_rate}</p>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Fee ($)</label>
@@ -640,6 +623,9 @@ const AddAccount = ({ onClose, onSuccess }) => {
             onChange={(e) => handleInputChange('delivery_fee', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
+          {errors.delivery_fee && (
+            <p className="text-red-600 text-sm mt-1">{errors.delivery_fee}</p>
+          )}
         </div>
         <div className="col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">Greeting Message</label>
