@@ -20,6 +20,7 @@ import AdminStatsCards from '../components/admin/AdminStatsCards';
 import AdminDataTable from '../components/admin/AdminDataTable';
 import AdminFilters from '../components/admin/AdminFilters';
 import UserDetailsModal from '../components/admin/UserDetailsModal';
+import AddAccount from '../components/admin/AddAccount';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ const AdminDashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [accountDetails, setAccountDetails] = useState(null);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showAddAccount, setShowAddAccount] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
     date_from: '',
@@ -395,21 +397,34 @@ const AdminDashboard = () => {
           <AdminStatsCards stats={stats} />
         )}
 
-        {/* Filters */}
+        {/* Filters and Add Button */}
         {activeTab !== 'stats' && (
-          <AdminFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            searchPlaceholder={
-              activeTab === 'users' ? 'Search by name, email, or restaurant...' :
-              activeTab === 'accounts' ? 'Search by restaurant name or owner...' :
-              activeTab === 'leads' ? 'Search by restaurant or contact...' :
-              'Search by caller name or phone...'
-            }
-            statusOptions={getStatusOptions()}
-            onClearFilters={clearFilters}
-            showDateRange={activeTab === 'leads' || activeTab === 'calls'}
-          />
+          <div className="flex justify-between items-start gap-4">
+            <AdminFilters
+              filters={filters}
+              onFiltersChange={setFilters}
+              searchPlaceholder={
+                activeTab === 'users' ? 'Search by name, email, or restaurant...' :
+                activeTab === 'accounts' ? 'Search by restaurant name or owner...' :
+                activeTab === 'leads' ? 'Search by restaurant or contact...' :
+                'Search by caller name or phone...'
+              }
+              statusOptions={getStatusOptions()}
+              onClearFilters={clearFilters}
+              showDateRange={activeTab === 'leads' || activeTab === 'calls'}
+            />
+            
+            {/* Add Account Button */}
+            {(activeTab === 'users' || activeTab === 'accounts') && (
+              <button
+                onClick={() => setShowAddAccount(true)}
+                className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
+              >
+                <Plus size={20} />
+                <span>Add Account</span>
+              </button>
+            )}
+          </div>
         )}
 
         {/* Data Table */}
@@ -445,6 +460,18 @@ const AdminDashboard = () => {
               setSelectedUser(null);
             }}
             onUpdate={handleUpdate}
+          />
+        )}
+
+        {/* Add Account Modal */}
+        {showAddAccount && (
+          <AddAccount
+            onClose={() => setShowAddAccount(false)}
+            onSuccess={(accountId) => {
+              // Refresh the current tab data
+              fetchTableData(activeTab);
+              setShowAddAccount(false);
+            }}
           />
         )}
       </div>
