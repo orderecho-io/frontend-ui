@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 
 const AddAccount = ({ onClose, onSuccess }) => {
   const [step, setStep] = useState(1); // 1: User & Account, 2: Settings, 3: Operating Hours
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     // User Info
     first_name: '',
@@ -62,6 +63,76 @@ const AddAccount = ({ onClose, onSuccess }) => {
 
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors({ ...errors, [field]: null });
+    }
+  };
+
+  const validateStep1 = () => {
+    const newErrors = {};
+    
+    // User validation
+    if (!formData.first_name?.trim()) newErrors.first_name = 'First name is required';
+    if (!formData.last_name?.trim()) newErrors.last_name = 'Last name is required';
+    if (!formData.email?.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Invalid email format';
+    }
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    }
+    
+    // Restaurant validation
+    if (!formData.restaurant_name?.trim()) newErrors.restaurant_name = 'Restaurant name is required';
+    if (!formData.business_phone?.trim()) {
+      newErrors.business_phone = 'Business phone is required';
+    } else if (!/^\+?[1-9]\d{9,14}$/.test(formData.business_phone.replace(/[\s-]/g, ''))) {
+      newErrors.business_phone = 'Invalid phone format (e.g., +1234567890)';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep2 = () => {
+    const newErrors = {};
+    
+    if (formData.temperature < 0 || formData.temperature > 1) {
+      newErrors.temperature = 'Temperature must be between 0 and 1';
+    }
+    if (formData.tax_rate < 0 || formData.tax_rate > 50) {
+      newErrors.tax_rate = 'Tax rate must be between 0 and 50';
+    }
+    if (formData.delivery_fee < 0) {
+      newErrors.delivery_fee = 'Delivery fee cannot be negative';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNextStep = () => {
+    let isValid = false;
+    
+    if (step === 1) {
+      isValid = validateStep1();
+    } else if (step === 2) {
+      isValid = validateStep2();
+    } else {
+      isValid = true; // Step 3 has no required fields
+    }
+    
+    if (isValid) {
+      setStep(step + 1);
+    } else {
+      toast.error('Please fix the errors before continuing', {
+        duration: 3000
+      });
+    }
   };
 
   const handleOperatingHourChange = (dayIndex, field, value) => {
@@ -268,9 +339,14 @@ const AddAccount = ({ onClose, onSuccess }) => {
               type="text"
               value={formData.first_name}
               onChange={(e) => handleInputChange('first_name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
+                errors.first_name ? 'border-red-500' : 'border-gray-300'
+              }`}
               required
             />
+            {errors.first_name && (
+              <p className="text-red-500 text-xs mt-1">{errors.first_name}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
@@ -278,9 +354,14 @@ const AddAccount = ({ onClose, onSuccess }) => {
               type="text"
               value={formData.last_name}
               onChange={(e) => handleInputChange('last_name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
+                errors.last_name ? 'border-red-500' : 'border-gray-300'
+              }`}
               required
             />
+            {errors.last_name && (
+              <p className="text-red-500 text-xs mt-1">{errors.last_name}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
@@ -288,9 +369,14 @@ const AddAccount = ({ onClose, onSuccess }) => {
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
+                errors.email ? 'border-red-500' : 'border-gray-300'
+              }`}
               required
             />
+            {errors.email && (
+              <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
@@ -308,10 +394,15 @@ const AddAccount = ({ onClose, onSuccess }) => {
               type="password"
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
+                errors.password ? 'border-red-500' : 'border-gray-300'
+              }`}
               required
               minLength={8}
             />
+            {errors.password && (
+              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
@@ -341,9 +432,14 @@ const AddAccount = ({ onClose, onSuccess }) => {
               type="text"
               value={formData.restaurant_name}
               onChange={(e) => handleInputChange('restaurant_name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
+                errors.restaurant_name ? 'border-red-500' : 'border-gray-300'
+              }`}
               required
             />
+            {errors.restaurant_name && (
+              <p className="text-red-500 text-xs mt-1">{errors.restaurant_name}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Business Phone *</label>
@@ -351,10 +447,15 @@ const AddAccount = ({ onClose, onSuccess }) => {
               type="tel"
               value={formData.business_phone}
               onChange={(e) => handleInputChange('business_phone', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 ${
+                errors.business_phone ? 'border-red-500' : 'border-gray-300'
+              }`}
               placeholder="+1234567890"
               required
             />
+            {errors.business_phone && (
+              <p className="text-red-500 text-xs mt-1">{errors.business_phone}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Business Email</label>
@@ -596,8 +697,22 @@ const AddAccount = ({ onClose, onSuccess }) => {
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <>
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center space-y-4 shadow-2xl">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900">Creating Account...</h3>
+              <p className="text-sm text-gray-600 mt-2">Please wait while we set up the account</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
           <h2 className="text-xl font-bold flex items-center space-x-2">
             <Plus className="text-blue-600" size={24} />
@@ -621,16 +736,17 @@ const AddAccount = ({ onClose, onSuccess }) => {
         <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex justify-between border-t">
           <button
             onClick={() => setStep(Math.max(1, step - 1))}
-            disabled={step === 1}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={step === 1 || loading}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Previous
           </button>
           
           {step < 3 ? (
             <button
-              onClick={() => setStep(step + 1)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+              onClick={handleNextStep}
+              disabled={loading}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2 disabled:opacity-50 transition-colors"
             >
               <span>Next</span>
             </button>
@@ -638,7 +754,7 @@ const AddAccount = ({ onClose, onSuccess }) => {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2 disabled:opacity-50"
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center space-x-2 disabled:opacity-50 transition-colors"
             >
               {loading ? (
                 <>
@@ -655,7 +771,8 @@ const AddAccount = ({ onClose, onSuccess }) => {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
