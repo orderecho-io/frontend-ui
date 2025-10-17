@@ -17,6 +17,44 @@ const AddAccount = ({ onClose, onSuccess }) => {
     }
     return `+${digits}`;
   };
+
+  // Helper function to parse and display backend validation errors
+  const handleBackendError = (errorData) => {
+    console.error('Backend error data:', errorData);
+    
+    // Handle FastAPI validation errors (422)
+    if (errorData.detail && Array.isArray(errorData.detail)) {
+      const errorMessages = errorData.detail.map(err => {
+        const field = err.loc ? err.loc.join(' → ') : 'Unknown field';
+        const message = err.msg || err.message || 'Invalid value';
+        return `• ${field}: ${message}`;
+      }).join('\n');
+      
+      toast.error(
+        <div className="space-y-1">
+          <div className="font-semibold">Validation Errors:</div>
+          <div className="text-sm whitespace-pre-line">{errorMessages}</div>
+        </div>,
+        { duration: 6000 }
+      );
+      return;
+    }
+    
+    // Handle single error object with detail string
+    if (typeof errorData.detail === 'string') {
+      toast.error(errorData.detail, { duration: 5000 });
+      return;
+    }
+    
+    // Handle generic error message
+    if (errorData.message) {
+      toast.error(errorData.message, { duration: 5000 });
+      return;
+    }
+    
+    // Fallback
+    toast.error('Failed to create account. Please check your input and try again.', { duration: 5000 });
+  };
   
   const [formData, setFormData] = useState({
     // User Info
@@ -201,9 +239,11 @@ const AddAccount = ({ onClose, onSuccess }) => {
         try {
           errorData = JSON.parse(errorText);
         } catch (e) {
-          throw new Error(errorText || 'Failed to create account');
+          toast.error(errorText || 'Failed to create account', { duration: 5000 });
+          throw new Error('Account creation failed');
         }
-        throw new Error(errorData.detail || errorData.message || 'Failed to create account');
+        handleBackendError(errorData);
+        throw new Error('Account creation failed');
       }
 
       const result = await response.json();
@@ -238,6 +278,13 @@ const AddAccount = ({ onClose, onSuccess }) => {
       
       if (!updateResponse.ok) {
         console.warn('Failed to update account fields, but continuing...');
+        const errorText = await updateResponse.text();
+        try {
+          const errorData = JSON.parse(errorText);
+          handleBackendError(errorData);
+        } catch (e) {
+          toast.error('Warning: Some account fields could not be updated', { duration: 3000 });
+        }
       } else {
         console.log('✅ Account fields updated');
       }
@@ -278,6 +325,12 @@ const AddAccount = ({ onClose, onSuccess }) => {
       if (!settingsResponse.ok) {
         const settingsError = await settingsResponse.text();
         console.error('Failed to create account settings:', settingsError);
+        try {
+          const errorData = JSON.parse(settingsError);
+          handleBackendError(errorData);
+        } catch (e) {
+          toast.error('Warning: Account settings could not be created', { duration: 3000 });
+        }
         console.warn('Account was created but settings failed');
       } else {
         console.log('✅ Account settings created');
@@ -307,10 +360,23 @@ const AddAccount = ({ onClose, onSuccess }) => {
         } else {
           const errorText = await hoursResponse.text();
           console.error(`Failed to create hours for day ${hours.day_of_week}:`, errorText);
+          try {
+            const errorData = JSON.parse(errorText);
+            handleBackendError(errorData);
+          } catch (e) {
+            // Silent fail for operating hours - not critical
+            console.warn('Could not parse operating hours error');
+          }
         }
       }
       
       console.log(`✅ Created ${hoursCreated}/${formData.operating_hours.length} operating hours`);
+      
+      if (hoursCreated < formData.operating_hours.length) {
+        toast.warning(`Note: Only ${hoursCreated} of ${formData.operating_hours.length} operating hours were created`, {
+          duration: 4000
+        });
+      }
 
       toast.success('Account created successfully!', {
         description: `${formData.restaurant_name} has been added to the system.`,
