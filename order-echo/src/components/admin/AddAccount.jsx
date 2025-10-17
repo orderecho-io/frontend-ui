@@ -221,13 +221,25 @@ const AddAccount = ({ onClose, onSuccess }) => {
       
       // Step 1: Create user and account
       console.log('Step 1: Creating user and account...');
+      
+      // Format phone number properly
+      const userPhone = formData.phone?.trim();
+      const businessPhone = formData.business_phone?.trim();
+      const formattedPhone = userPhone ? formatPhoneE164(userPhone) : formatPhoneE164(businessPhone);
+      
+      console.log('Phone formatting:', {
+        userPhone,
+        businessPhone,
+        formattedPhone
+      });
+      
       const signupPayload = {
         // Backend expects camelCase for user fields
         firstName: formData.first_name,
         lastName: formData.last_name,
         email: formData.email,
         password: formData.password,
-        phone: formData.phone ? formatPhoneE164(formData.phone) : formatPhoneE164(formData.business_phone), // Use business phone if user phone not provided
+        phone: formattedPhone,
         // Backend expects snake_case for restaurant fields
         restaurant_name: formData.restaurant_name,
         address: formData.business_address,
