@@ -5,6 +5,19 @@ import { toast } from 'sonner';
 const AddAccount = ({ onClose, onSuccess }) => {
   const [step, setStep] = useState(1); // 1: User & Account, 2: Settings, 3: Operating Hours
   const [errors, setErrors] = useState({});
+  
+  // Helper function to format phone to E.164
+  const formatPhoneE164 = (phone) => {
+    if (!phone) return '';
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    // If it doesn't start with +, add it
+    if (!phone.startsWith('+')) {
+      return `+${digits}`;
+    }
+    return `+${digits}`;
+  };
+  
   const [formData, setFormData] = useState({
     // User Info
     first_name: '',
@@ -86,8 +99,11 @@ const AddAccount = ({ onClose, onSuccess }) => {
     if (!formData.restaurant_name?.trim()) newErrors.restaurant_name = 'Restaurant name is required';
     if (!formData.business_phone?.trim()) {
       newErrors.business_phone = 'Business phone is required';
-    } else if (!/^\+?[1-9]\d{9,14}$/.test(formData.business_phone.replace(/[\s-]/g, ''))) {
-      newErrors.business_phone = 'Invalid phone format (e.g., +1234567890)';
+    } else {
+      const digits = formData.business_phone.replace(/\D/g, '');
+      if (digits.length < 10 || digits.length > 15) {
+        newErrors.business_phone = 'Phone number must be 10-15 digits (e.g., +13062160665 or 3062160665)';
+      }
     }
     
     setErrors(newErrors);
@@ -156,10 +172,10 @@ const AddAccount = ({ onClose, onSuccess }) => {
         password: formData.password,
         first_name: formData.first_name,
         last_name: formData.last_name,
-        phone: formData.phone,
+        phone: formData.phone ? formatPhoneE164(formData.phone) : undefined,
         role: formData.role,
         restaurant_name: formData.restaurant_name,
-        phone_number: formData.business_phone,
+        phone_number: formatPhoneE164(formData.business_phone),
         address: formData.business_address,
         cuisine_type: formData.cuisine_type,
         restaurant_type: formData.restaurant_type
