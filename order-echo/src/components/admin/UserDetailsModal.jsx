@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, Settings, Clock, Save, Edit, AlertCircle } from 'lucide-react';
+import { X, User, Settings, Clock, Save, Edit, AlertCircle, Key } from 'lucide-react';
 import AccountInfo from './AccountInfo';
 import AccountSettings from './AccountSettings';
 import WorkingHours from './WorkingHours';
+import PasswordReset from './PasswordReset';
 
 const UserDetailsModal = ({ user, accountDetails, onClose, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -12,6 +13,7 @@ const UserDetailsModal = ({ user, accountDetails, onClose, onUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState('account');
   const [error, setError] = useState(null);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
 
   useEffect(() => {
     if (accountDetails?.user) {
@@ -169,7 +171,8 @@ const UserDetailsModal = ({ user, accountDetails, onClose, onUpdate }) => {
   const subTabs = [
     { id: 'account', label: 'Account Info', icon: User },
     { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'hours', label: 'Working Hours', icon: Clock }
+    { id: 'hours', label: 'Working Hours', icon: Clock },
+    { id: 'password', label: 'Reset Password', icon: Key }
   ];
 
   return (
@@ -272,6 +275,19 @@ const UserDetailsModal = ({ user, accountDetails, onClose, onUpdate }) => {
                   isEditing={isEditing}
                   editedHours={editedHours}
                   setEditedHours={setEditedHours}
+                />
+              )}
+
+              {/* Password Reset Tab */}
+              {activeSubTab === 'password' && (
+                <PasswordReset
+                  user={accountDetails?.user || user}
+                  onPasswordReset={() => {
+                    // Refresh the modal after password reset
+                    if (onUpdate) {
+                      onUpdate();
+                    }
+                  }}
                 />
               )}
             </>
