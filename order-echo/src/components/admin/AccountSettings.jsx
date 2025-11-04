@@ -136,12 +136,13 @@ const AccountSettings = ({ accountId, isEditing, onEditToggle }) => {
               delivery_fee: 0.0,
               tax_rate: 0.0,
               pos_integration_enabled: false,
-              ultravox_model: 'fixie-ai/ultravox',
+              ultravox_model: 'fixie-ai/ultravox-glm4.6-355b-preview',
               join_timeout: 30,
               language_hint: 'en',
               first_speaker: 'FIRST_SPEAKER_AGENT',
               initial_output_medium: 'MESSAGE_MEDIUM_VOICE',
-              transcript_optional: true
+              transcript_optional: true,
+              menu_text: ''
             });
             onEditToggle(true);
           }}
@@ -322,6 +323,28 @@ const AccountSettings = ({ accountId, isEditing, onEditToggle }) => {
               <div className="bg-gray-50 p-4 rounded-md max-h-96 overflow-y-auto">
                 <pre className="text-sm whitespace-pre-wrap text-gray-900">
                   {currentSettings.system_prompt || 'No system prompt configured'}
+                </pre>
+              </div>
+            )}
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Menu Text
+              <span className="text-xs text-gray-500 ml-2">(Menu content that will be combined with system prompt)</span>
+            </label>
+            {isEditing ? (
+              <textarea
+                value={editedSettings.menu_text || ''}
+                onChange={(e) => setEditedSettings({...editedSettings, menu_text: e.target.value})}
+                rows={30}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                placeholder="Enter menu content in text format. This will be appended to the system prompt when making calls."
+              />
+            ) : (
+              <div className="bg-gray-50 p-4 rounded-md max-h-96 overflow-y-auto">
+                <pre className="text-sm whitespace-pre-wrap text-gray-900">
+                  {currentSettings.menu_text || 'No menu text configured'}
                 </pre>
               </div>
             )}
